@@ -1,0 +1,430 @@
+/**
+ * UNS SCHOOL — Phase 2 Integrity & Audit Regression Tests
+ * Verifies class/academic-year/school invariants, class immutability,
+ * archived academic year protections, strict CSV identity disambiguation,
+ * gender/DOB validation, and school context checks.
+ */
+
+import { describe, it, expect, beforeEach } from 'vitest';
+import { db } from '../db/database';
+import {
+  academicYearRepository,
+  classRepository,
+  studentPersonRepository,
+  studentEnrollmentRepository,
+} from '../db/repositories';
+import {
+  parseCsvText,
+  parseAndValidateDateOfBirth,
+  normalizeGender,
+  prepareStudentImportPreview,
+  executeStudentImport,
+} from '../services/studentImportService';
+import type { AcademicYear, SchoolClass, StudentPerson } from '../types';
+
+describe('Phase 2 Integrity Hardening & Domain Invariant Tests', () => {
+  const schoolId = 'school-p2-test';
+  const otherSchoolId = 'school-other-test';
+  const year1Id = 'year-p2-active';
+  const yearArchivedId = 'year-p2-archived';
+  const class1Id = 'class-p2-1';
+
+  beforeEach(async () => {
+    await db.grades.clear();
+    await db.assessments.clear();
+    await db.attendance.clear();
+    await db.lessons.clear();
+    await db.studentEnrollments.clear();
+    await db.studentPersons.clear();
+    await db.classes.clear();
+    await db.academicYears.clear();
+    await db.schools.clear();
+
+    // Create main school
+    await db.schools.add({
+      id: schoolId,
+      name: 'Ibn Khaldoun Middle School',
+      commune: 'Algiers',
+      wilaya: '16',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Create other school
+    await db.schools.add({
+      id: otherSchoolId,
+      name: 'Other Secondary School',
+      commune: 'Oran',
+      wilaya: '31',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Create active academic year
+    const activeYear: AcademicYear = {
+      id: year1Id,
+      schoolId,
+      label: '2025-2026',
+      startDate: '2025-09-01',
+      endDate: '2026-06-30',
+      isCurrent: true,
+      isArchived: false,
+      terms: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await academicYearRepository.create(activeYear);
+
+    // Create archived academic year
+    const archivedYear: AcademicYear = {
+      id: yearArchivedId,
+      schoolId,
+      label: '2024-2025',
+      startDate: '2024-09-01',
+      endDate: '2025-06-30',
+      isCurrent: false,
+      isArchived: true,
+      terms: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await db.academicYears.add(archivedYear);
+
+    // Create valid class in active year
+    const validClass: SchoolClass = {
+      id: class1Id,
+      schoolId,
+      academicYearId: year1Id,
+      levelCode: '1MS',
+      name: '1MS 1',
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await classRepository.create(validClass);
+  });
+
+  describe('Fix #1 — Class / Academic Year / School Invariant', () => {
+    it('rejects class creation when class.schoolId differs from academicYear.schoolId', async () => {
+      const invalidClass: SchoolClass = {
+        id: 'class-mismatched-school',
+        schoolId: otherSchoolId, // Does NOT match year1's schoolId (schoolId)
+        academicYearId: year1Id,
+        levelCode: '1MS',
+        name: '1MS 2',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(classRepository.create(invalidClass)).rejects.toThrow(
+        /Class schoolId does not match AcademicYear schoolId/i
+      );
+    });
+
+    it('rejects class creation when academic year does not exist', async () => {
+      const ghostClass: SchoolClass = {
+        id: 'class-ghost-year',
+        schoolId,
+        academicYearId: 'non-existent-year',
+        levelCode: '1MS',
+        name: '1MS 3',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(classRepository.create(ghostClass)).rejects.toThrow(
+        /Academic year with id non-existent-year not found/i
+      );
+    });
+  });
+
+  describe('Fix #2 — Class Academic Year & School Immutability', () => {
+    it('prohibits migrating a class to a different academic year via update', async () => {
+      await expect(
+        classRepository.update(class1Id, { academicYearId: yearArchivedId })
+      ).rejects.toThrow(/Class academicYearId cannot be changed after creation/i);
+    });
+
+    it('prohibits mutating schoolId on an existing class via update', async () => {
+      await expect(
+        classRepository.update(class1Id, { schoolId: otherSchoolId })
+      ).rejects.toThrow(/Class schoolId cannot be changed after creation/i);
+    });
+  });
+
+  describe('Fix #3 — Archive Protection Invariants', () => {
+    it('rejects creating a class in an archived academic year', async () => {
+      const classInArchivedYear: SchoolClass = {
+        id: 'class-in-archived',
+        schoolId,
+        academicYearId: yearArchivedId,
+        levelCode: '2MS',
+        name: '2MS 1',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(classRepository.create(classInArchivedYear)).rejects.toThrow(
+        /Cannot add new classes to an archived academic year/i
+      );
+    });
+
+    it('rejects modifying a class that belongs to an archived academic year', async () => {
+      // Direct insert a class into the archived year to test update guards
+      const oldClass: SchoolClass = {
+        id: 'class-old',
+        schoolId,
+        academicYearId: yearArchivedId,
+        levelCode: '3MS',
+        name: '3MS 1',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await db.classes.add(oldClass);
+
+      await expect(
+        classRepository.update(oldClass.id, { name: '3MS 1 Renamed' })
+      ).rejects.toThrow(/Cannot modify classes in an archived academic year/i);
+    });
+  });
+
+  describe('Fix #4 — Safe CSV Student Identity Disambiguation', () => {
+    it('Rule A: Matches by exact National ID when valid', async () => {
+      const existingStudent: StudentPerson = {
+        id: 'student-nin-1',
+        firstNameLatin: 'Anis',
+        lastNameLatin: 'Boussaid',
+        gender: 'M',
+        dateOfBirth: '2012-04-10',
+        nationalIdNumber: '201216010099999',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(existingStudent);
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth,nationalIdNumber
+1,Anis,Boussaid,M,2012-04-10,201216010099999`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.validRows.length).toBe(1);
+      expect(preview.validRows[0].isNewPerson).toBe(false);
+      expect(preview.validRows[0].existingPersonId).toBe(existingStudent.id);
+    });
+
+    it('Rule B: Matches by exact Name + exact DOB when NIN is absent', async () => {
+      const existingStudent: StudentPerson = {
+        id: 'student-name-dob-1',
+        firstNameLatin: 'Amel',
+        lastNameLatin: 'Zerrouki',
+        gender: 'F',
+        dateOfBirth: '2012-08-15',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(existingStudent);
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Amel,Zerrouki,F,2012-08-15`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.validRows.length).toBe(1);
+      expect(preview.validRows[0].isNewPerson).toBe(false);
+      expect(preview.validRows[0].existingPersonId).toBe(existingStudent.id);
+    });
+
+    it('Rule C: Prohibits auto-merge when DOB is missing on CSV or database record', async () => {
+      const existingStudent: StudentPerson = {
+        id: 'student-no-dob',
+        firstNameLatin: 'Karim',
+        lastNameLatin: 'Ziani',
+        gender: 'M',
+        // dateOfBirth is undefined!
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(existingStudent);
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Karim,Ziani,M,2012-01-01`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.invalidRows.length).toBe(1);
+      expect(preview.invalidRows[0].errors[0]).toMatch(/Automatic merge prohibited for safety/i);
+    });
+
+    it('Rule D: Flags identity conflict when DOB differs for same-named student', async () => {
+      const existingStudent: StudentPerson = {
+        id: 'student-diff-dob',
+        firstNameLatin: 'Yacine',
+        lastNameLatin: 'Brahimi',
+        gender: 'M',
+        dateOfBirth: '2012-05-10',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(existingStudent);
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Yacine,Brahimi,M,2011-12-20`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.invalidRows.length).toBe(1);
+      expect(preview.invalidRows[0].errors[0]).toMatch(/Identity conflict/i);
+    });
+
+    it('Rule E: Rejects automatic merge when multiple database candidates share the name', async () => {
+      await studentPersonRepository.create({
+        id: 'p1',
+        firstNameLatin: 'Mohamed',
+        lastNameLatin: 'Belhadj',
+        gender: 'M',
+        dateOfBirth: '2012-01-01',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+      await studentPersonRepository.create({
+        id: 'p2',
+        firstNameLatin: 'Mohamed',
+        lastNameLatin: 'Belhadj',
+        gender: 'M',
+        dateOfBirth: '2012-02-02',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Mohamed,Belhadj,M,2012-01-01`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.invalidRows.length).toBe(1);
+      expect(preview.invalidRows[0].errors[0]).toMatch(/Ambiguous identity requires manual resolution/i);
+    });
+  });
+
+  describe('Fix #5 — Strict Gender Validation', () => {
+    it('normalizes valid gender aliases correctly', () => {
+      expect(normalizeGender('M')).toBe('M');
+      expect(normalizeGender('male')).toBe('M');
+      expect(normalizeGender('Garçon')).toBe('M');
+      expect(normalizeGender('ذكر')).toBe('M');
+      expect(normalizeGender('F')).toBe('F');
+      expect(normalizeGender('female')).toBe('F');
+      expect(normalizeGender('fille')).toBe('F');
+      expect(normalizeGender('أنثى')).toBe('F');
+    });
+
+    it('rejects invalid or missing gender and does NOT silently default to M', async () => {
+      expect(normalizeGender('')).toBeUndefined();
+      expect(normalizeGender('unknown')).toBeUndefined();
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Salima,Hamidi,,2012-06-01
+2,Riad,Mahrez,X,2012-07-01`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.invalidRows.length).toBe(2);
+      expect(preview.invalidRows[0].errors.some((e) => /gender is required/i.test(e))).toBe(true);
+      expect(preview.invalidRows[1].errors.some((e) => /invalid gender value/i.test(e))).toBe(true);
+    });
+  });
+
+  describe('Fix #6 — Robust Date of Birth Calendar Validation', () => {
+    it('parses valid calendar dates accurately', () => {
+      const res1 = parseAndValidateDateOfBirth('2012-05-14');
+      expect(res1.isValid).toBe(true);
+      expect(res1.date).toBe('2012-05-14');
+
+      const res2 = parseAndValidateDateOfBirth('14/05/2012');
+      expect(res2.isValid).toBe(true);
+      expect(res2.date).toBe('2012-05-14');
+
+      // Leap year 2012
+      const resLeap = parseAndValidateDateOfBirth('2012-02-29');
+      expect(resLeap.isValid).toBe(true);
+      expect(resLeap.date).toBe('2012-02-29');
+    });
+
+    it('rejects impossible dates like Feb 30, month 13, and non-leap Feb 29 as row errors', async () => {
+      const resFeb30 = parseAndValidateDateOfBirth('2012-02-30');
+      expect(resFeb30.isValid).toBe(false);
+
+      const resNonLeapFeb29 = parseAndValidateDateOfBirth('2013-02-29');
+      expect(resNonLeapFeb29.isValid).toBe(false);
+
+      const resMonth13 = parseAndValidateDateOfBirth('2012-13-01');
+      expect(resMonth13.isValid).toBe(false);
+
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth
+1,Test,Student,M,2012-02-30`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.invalidRows.length).toBe(1);
+      expect(preview.invalidRows[0].errors.some((e) => /date of birth/i.test(e))).toBe(true);
+    });
+  });
+
+  describe('Fix #7 & #8 — Context Validation & Delimiter Detection', () => {
+    it('supports semicolon, tab, and pipe delimiters cleanly', () => {
+      const semicolonCsv = `registerNumber;firstNameLatin;lastNameLatin;gender;dateOfBirth\n1;Ali;Bennani;M;2012-01-01`;
+      const parsedSemicolon = parseCsvText(semicolonCsv);
+      expect(parsedSemicolon.length).toBe(1);
+      expect(parsedSemicolon[0].data.firstNameLatin).toBe('Ali');
+
+      const pipeCsv = `registerNumber|firstNameLatin|lastNameLatin|gender|dateOfBirth\n1|Sofiane|Feghouli|M|2012-01-01`;
+      const parsedPipe = parseCsvText(pipeCsv);
+      expect(parsedPipe.length).toBe(1);
+      expect(parsedPipe[0].data.firstNameLatin).toBe('Sofiane');
+    });
+
+    it('rejects import if target school or class context does not match', async () => {
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth\n1,Nabil,Bentaleb,M,2012-01-01`;
+
+      await expect(
+        prepareStudentImportPreview(csv, {
+          schoolId: otherSchoolId, // mismatch!
+          academicYearId: year1Id,
+          classId: class1Id,
+        })
+      ).rejects.toThrow(/Target academic year does not belong to the selected school/i);
+    });
+  });
+});

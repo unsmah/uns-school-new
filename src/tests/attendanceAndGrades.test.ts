@@ -41,6 +41,15 @@ describe('Attendance & Grade Transactional Integrity', () => {
     await db.curriculumVersions.clear();
     await db.gradingSchemes.clear();
 
+    await db.schools.add({
+      id: schoolId,
+      name: 'Attendance Test School',
+      commune: 'Algiers',
+      wilaya: '16',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
     await db.curriculumVersions.add({
       id: 'curr-v1',
       code: 'DZ-2016',

@@ -1,7 +1,7 @@
 /**
  * UNS SCHOOL — Student CSV Import Service
- * Handles robust parsing, multi-pass validation, duplicate detection, preview generation,
- * and transactional execution for student roster imports.
+ * Handles robust parsing, multi-pass validation, identity disambiguation,
+ * duplicate detection, preview generation, and transactional execution for student roster imports.
  */
 
 import { db } from '../db/database';
@@ -26,7 +26,7 @@ export interface ParsedStudentRow {
   isRepeating: boolean;
   guardianName?: string;
   guardianPhone?: string;
-  
+
   // Resolution flags
   existingPersonId?: string; // If matched to an existing StudentPerson
   isNewPerson: boolean;
@@ -54,6 +54,12 @@ export interface ImportExecutionSummary {
   totalProcessed: number;
 }
 
+export interface TargetImportContext {
+  schoolId: string;
+  academicYearId: string;
+  classId: string;
+}
+
 // Normalized header keys
 const HEADER_ALIASES: Record<string, string> = {
   // First Name Latin
@@ -63,14 +69,14 @@ const HEADER_ALIASES: Record<string, string> = {
   'first name': 'firstNameLatin',
   prenom: 'firstNameLatin',
   prénom: 'firstNameLatin',
-  
+
   // Last Name Latin
   lastname: 'lastNameLatin',
   last_name: 'lastNameLatin',
   lastnamelatin: 'lastNameLatin',
   'last name': 'lastNameLatin',
   nom: 'lastNameLatin',
-  
+
   // Arabic First Name
   firstnamearabic: 'firstNameArabic',
   firstname_ar: 'firstNameArabic',
@@ -78,7 +84,7 @@ const HEADER_ALIASES: Record<string, string> = {
   prenomarabe: 'firstNameArabic',
   'الاسم': 'firstNameArabic',
   'الاسم بالعربية': 'firstNameArabic',
-  
+
   // Arabic Last Name
   lastnamearabic: 'lastNameArabic',
   lastname_ar: 'lastNameArabic',
@@ -86,7 +92,7 @@ const HEADER_ALIASES: Record<string, string> = {
   nomarabe: 'lastNameArabic',
   'اللقب': 'lastNameArabic',
   'اللقب بالعربية': 'lastNameArabic',
-  
+
   // Date of Birth
   dateofbirth: 'dateOfBirth',
   date_of_birth: 'dateOfBirth',
@@ -95,20 +101,20 @@ const HEADER_ALIASES: Record<string, string> = {
   'date de naissance': 'dateOfBirth',
   date_naissance: 'dateOfBirth',
   'تاريخ الميلاد': 'dateOfBirth',
-  
+
   // Gender
   gender: 'gender',
   sex: 'gender',
   sexe: 'gender',
   'الجنس': 'gender',
-  
+
   // NIN
   nationalidnumber: 'nationalIdNumber',
   national_id: 'nationalIdNumber',
   nin: 'nationalIdNumber',
   matricule: 'nationalIdNumber',
   'رقم التعريف الوطني': 'nationalIdNumber',
-  
+
   // Register Number
   registernumber: 'registerNumber',
   register_number: 'registerNumber',
@@ -122,14 +128,14 @@ const HEADER_ALIASES: Record<string, string> = {
   num: 'registerNumber',
   'رقم القيد': 'registerNumber',
   'الرقم': 'registerNumber',
-  
+
   // Repeating
   isrepeating: 'isRepeating',
   is_repeating: 'isRepeating',
   repeating: 'isRepeating',
   redoublant: 'isRepeating',
   'معيد': 'isRepeating',
-  
+
   // Guardian
   guardianname: 'guardianName',
   guardian_name: 'guardianName',
@@ -142,28 +148,43 @@ const HEADER_ALIASES: Record<string, string> = {
 };
 
 /**
- * Pure CSV parser supporting commas, semicolons, tabs, quoted strings and newlines.
+ * Pure CSV parser supporting commas, semicolons, tabs, and pipes,
+ * with RFC 4180 quotes, escaped quotes, and multiline support.
  */
 export function parseCsvText(csvText: string): RawCsvRow[] {
+  if (!csvText || !csvText.trim()) {
+    return [];
+  }
+
   // Strip UTF-8 BOM if present
   let cleanText = csvText;
   if (cleanText.charCodeAt(0) === 0xfeff) {
     cleanText = cleanText.slice(1);
   }
 
-  // Detect delimiter: check first non-empty line
+  // Detect delimiter by checking first non-empty line
   const lines = cleanText.split(/\r?\n/);
   const firstLine = lines.find((l) => l.trim().length > 0) || '';
-  
-  let delimiter = ',';
+
   const commaCount = (firstLine.match(/,/g) || []).length;
   const semicolonCount = (firstLine.match(/;/g) || []).length;
   const tabCount = (firstLine.match(/\t/g) || []).length;
+  const pipeCount = (firstLine.match(/\|/g) || []).length;
 
-  if (semicolonCount > commaCount && semicolonCount > tabCount) {
+  let delimiter = ',';
+  let maxCount = commaCount;
+
+  if (semicolonCount > maxCount) {
     delimiter = ';';
-  } else if (tabCount > commaCount && tabCount > semicolonCount) {
+    maxCount = semicolonCount;
+  }
+  if (tabCount > maxCount) {
     delimiter = '\t';
+    maxCount = tabCount;
+  }
+  if (pipeCount > maxCount) {
+    delimiter = '|';
+    maxCount = pipeCount;
   }
 
   // Robust RFC 4180 tokenizer
@@ -180,7 +201,7 @@ export function parseCsvText(csvText: string): RawCsvRow[] {
       if (char === '"') {
         if (nextChar === '"') {
           currentField += '"';
-          i++; // skip escaped quote
+          i++; // Skip escaped double quote
         } else {
           inQuotes = false;
         }
@@ -227,7 +248,7 @@ export function parseCsvText(csvText: string): RawCsvRow[] {
     return [];
   }
 
-  // Header normalization
+  // Normalize header keys
   const headerRow = rows[0].map((h) => h.toLowerCase().trim().replace(/['"`]/g, ''));
   const mappedHeaders = headerRow.map((h) => HEADER_ALIASES[h] || h);
 
@@ -252,44 +273,91 @@ export function parseCsvText(csvText: string): RawCsvRow[] {
   return result;
 }
 
-/**
- * Normalizes date formats into ISO YYYY-MM-DD
- */
-export function normalizeDate(dateStr?: string): string | undefined {
-  if (!dateStr || !dateStr.trim()) return undefined;
-  const s = dateStr.trim();
-
-  // YYYY-MM-DD or YYYY/MM/DD
-  const ymdMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-  if (ymdMatch) {
-    const y = ymdMatch[1];
-    const m = ymdMatch[2].padStart(2, '0');
-    const d = ymdMatch[3].padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }
-
-  // DD-MM-YYYY or DD/MM/YYYY
-  const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-  if (dmyMatch) {
-    const d = dmyMatch[1].padStart(2, '0');
-    const m = dmyMatch[2].padStart(2, '0');
-    const y = dmyMatch[3];
-    return `${y}-${m}-${d}`;
-  }
-
-  return undefined;
+export interface DateParseResult {
+  isValid: boolean;
+  date?: string; // Normalized YYYY-MM-DD
+  error?: string;
 }
 
 /**
- * Normalizes gender strings
+ * Validates and normalizes date of birth.
+ * Missing/empty DOB is allowed by domain model (returns isValid: true, date: undefined).
+ * If non-empty, checks format, calendar validity (including leap years), and realistic age bounds.
+ */
+export function parseAndValidateDateOfBirth(dateStr?: string): DateParseResult {
+  if (!dateStr || !dateStr.trim()) {
+    return { isValid: true, date: undefined };
+  }
+  const s = dateStr.trim();
+  let y: number, m: number, d: number;
+
+  // YYYY-MM-DD, YYYY/MM/DD, YYYY.MM.DD
+  const ymdMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  // DD-MM-YYYY, DD/MM/YYYY, DD.MM.YYYY
+  const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
+  // 8-digit compact YYYYMMDD
+  const compactMatch = s.match(/^(\d{4})(\d{2})(\d{2})$/);
+
+  if (ymdMatch) {
+    y = parseInt(ymdMatch[1], 10);
+    m = parseInt(ymdMatch[2], 10);
+    d = parseInt(ymdMatch[3], 10);
+  } else if (dmyMatch) {
+    d = parseInt(dmyMatch[1], 10);
+    m = parseInt(dmyMatch[2], 10);
+    y = parseInt(dmyMatch[3], 10);
+  } else if (compactMatch) {
+    y = parseInt(compactMatch[1], 10);
+    m = parseInt(compactMatch[2], 10);
+    d = parseInt(compactMatch[3], 10);
+  } else {
+    return {
+      isValid: false,
+      error: `Malformed date of birth: "${dateStr}". Expected format: YYYY-MM-DD or DD/MM/YYYY.`,
+    };
+  }
+
+  // Month validity
+  if (m < 1 || m > 12) {
+    return {
+      isValid: false,
+      error: `Invalid month (${m}) in date of birth: "${dateStr}".`,
+    };
+  }
+
+  // Day validity (handles leap years via Date.UTC)
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  if (d < 1 || d > daysInMonth) {
+    return {
+      isValid: false,
+      error: `Invalid day (${d}) for month ${m} in date of birth: "${dateStr}".`,
+    };
+  }
+
+  // Realistic year bounds
+  const currentYear = new Date().getFullYear();
+  if (y < 1900 || y > currentYear) {
+    return {
+      isValid: false,
+      error: `Date of birth year (${y}) is out of reasonable range (1900-${currentYear}).`,
+    };
+  }
+
+  const normalized = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  return { isValid: true, date: normalized };
+}
+
+/**
+ * Normalizes gender strings strictly.
+ * Returns 'M' | 'F' or undefined. NEVER defaults invalid/missing input to 'M'.
  */
 export function normalizeGender(val?: string): 'M' | 'F' | undefined {
   if (!val) return undefined;
   const s = val.trim().toLowerCase();
-  if (s === 'm' || s === 'male' || s === 'garçon' || s === 'garcon' || s === 'g' || s === 'ذكر' || s === '1') {
+  if (['m', 'male', 'garçon', 'garcon', 'homme', 'h', 'ذكر', '1', 'boy'].includes(s)) {
     return 'M';
   }
-  if (s === 'f' || s === 'female' || s === 'fille' || s === 'f' || s === 'أنثى' || s === '2') {
+  if (['f', 'female', 'fille', 'femme', 'feminin', 'féminin', 'أنثى', '2', 'girl'].includes(s)) {
     return 'F';
   }
   return undefined;
@@ -305,12 +373,75 @@ export function normalizeRepeating(val?: string): boolean {
 }
 
 /**
- * Parses, validates, and generates a rich preview for the teacher before importing.
+ * Name normalization for safe matching (case-insensitive, diacritic-insensitive, collapsed whitespace).
+ */
+export function normalizeName(name?: string): string {
+  if (!name) return '';
+  return name
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+/**
+ * Validates target school, academic year, and class context.
+ */
+export async function validateImportTargetContext(targetContext: TargetImportContext): Promise<{
+  school: any;
+  academicYear: any;
+  schoolClass: any;
+}> {
+  const school = await db.schools.get(targetContext.schoolId);
+  if (!school) {
+    throw new Error(`Target school with ID ${targetContext.schoolId} not found.`);
+  }
+
+  const academicYear = await db.academicYears.get(targetContext.academicYearId);
+  if (!academicYear) {
+    throw new Error(`Target academic year with ID ${targetContext.academicYearId} not found.`);
+  }
+
+  if (academicYear.schoolId !== targetContext.schoolId) {
+    throw new Error('Target academic year does not belong to the selected school.');
+  }
+
+  if (academicYear.isArchived) {
+    throw new Error('Cannot import students into an archived academic year.');
+  }
+
+  const schoolClass = await db.classes.get(targetContext.classId);
+  if (!schoolClass) {
+    throw new Error(`Target class with ID ${targetContext.classId} not found.`);
+  }
+
+  if (schoolClass.schoolId !== targetContext.schoolId) {
+    throw new Error('Target class does not belong to the selected school.');
+  }
+
+  if (schoolClass.academicYearId !== targetContext.academicYearId) {
+    throw new Error('Target class does not belong to the selected academic year.');
+  }
+
+  if (schoolClass.isArchived) {
+    throw new Error('Cannot import students into an archived class.');
+  }
+
+  return { school, academicYear, schoolClass };
+}
+
+/**
+ * Parses, validates, and generates an audit preview before importing.
+ * Applies strict identity matching, gender checks, calendar bounds, and context invariant checks.
  */
 export async function prepareStudentImportPreview(
   csvText: string,
-  targetContext: { schoolId: string; academicYearId: string; classId: string }
+  targetContext: TargetImportContext
 ): Promise<ImportPreviewResult> {
+  // Validate school/year/class hierarchy and archive protection
+  await validateImportTargetContext(targetContext);
+
   const rawRows = parseCsvText(csvText);
   if (rawRows.length === 0) {
     return {
@@ -324,7 +455,7 @@ export async function prepareStudentImportPreview(
     };
   }
 
-  // Pre-fetch context database entities to validate invariants
+  // Pre-fetch existing database entities
   const [existingPersons, existingEnrollmentsInClass, existingEnrollmentsInYear] = await Promise.all([
     db.studentPersons.toArray(),
     db.studentEnrollments.where('classId').equals(targetContext.classId).toArray(),
@@ -343,6 +474,9 @@ export async function prepareStudentImportPreview(
   }
 
   const seenRegisterNumbersInBatch = new Set<number>();
+  const seenBatchNins = new Map<string, number>(); // NIN -> rowNumber
+  const seenBatchIdentities = new Map<string, number>(); // Name+DOB -> rowNumber
+
   const validRows: ParsedStudentRow[] = [];
   const invalidRows: ParsedStudentRow[] = [];
 
@@ -360,51 +494,132 @@ export async function prepareStudentImportPreview(
     const lastNameLatin = (data.lastNameLatin || data.nom || data.lastname || '').trim();
     const firstNameArabic = (data.firstNameArabic || '').trim() || undefined;
     const lastNameArabic = (data.lastNameArabic || '').trim() || undefined;
+
     const rawDob = data.dateOfBirth || data.dob || data.date_naissance || '';
-    const dateOfBirth = normalizeDate(rawDob);
+    const dobResult = parseAndValidateDateOfBirth(rawDob);
+    if (!dobResult.isValid) {
+      errors.push(dobResult.error || `Invalid date of birth: "${rawDob}".`);
+    }
+    const dateOfBirth = dobResult.date;
+
     const rawGender = data.gender || data.sexe || '';
-    const gender = normalizeGender(rawGender) || 'M';
+    const parsedGender = normalizeGender(rawGender);
+    if (!parsedGender) {
+      errors.push(
+        rawGender
+          ? `Invalid gender value: "${rawGender}". Must be M (Male / ذكر) or F (Female / أنثى).`
+          : 'Gender is required (M/F).'
+      );
+    }
+    const gender: 'M' | 'F' = parsedGender || 'M';
+
     const nationalIdNumber = (data.nationalIdNumber || data.nin || '').trim() || undefined;
     const rawReg = data.registerNumber || data.numero_ordre || data.numero || '';
-    
-    // Auto-calculate register number if omitted or parse it
+
+    // Register number validation
     let registerNumber = parseInt(rawReg, 10);
     if (isNaN(registerNumber) || registerNumber <= 0) {
-      // Fallback register number: pick next available integer
-      registerNumber = idx + 1;
+      // Auto-assign next available integer if omitted
+      let candidateReg = idx + 1;
+      while (existingRegisterNumbers.has(candidateReg) || seenRegisterNumbersInBatch.has(candidateReg)) {
+        candidateReg++;
+      }
+      registerNumber = candidateReg;
     }
 
     const isRepeating = normalizeRepeating(data.isRepeating || data.redoublant);
     const guardianName = (data.guardianName || '').trim() || undefined;
     const guardianPhone = (data.guardianPhone || '').trim() || undefined;
 
-    // Field validations
+    // Required fields check
     if (!firstNameLatin) {
-      errors.push('First name (Latin) is required');
+      errors.push('First name (Latin) is required.');
     }
     if (!lastNameLatin) {
-      errors.push('Last name (Latin) is required');
-    }
-    if (rawDob && !dateOfBirth) {
-      warnings.push(`Invalid date of birth format: "${rawDob}". Format should be YYYY-MM-DD.`);
+      errors.push('Last name (Latin) is required.');
     }
 
-    // Match existing student person:
-    // 1. Match by NIN if NIN exists
-    // 2. Match by exact (firstNameLatin + lastNameLatin + dateOfBirth)
-    let matchedPerson: StudentPerson | undefined = undefined;
+    const normFirst = normalizeName(firstNameLatin);
+    const normLast = normalizeName(lastNameLatin);
+
+    // Intra-batch duplicate checks
     if (nationalIdNumber) {
-      matchedPerson = existingPersons.find(
+      const lowerNin = nationalIdNumber.toLowerCase();
+      if (seenBatchNins.has(lowerNin)) {
+        errors.push(`National ID "${nationalIdNumber}" appears multiple times in this CSV batch (row #${seenBatchNins.get(lowerNin)}).`);
+      } else {
+        seenBatchNins.set(lowerNin, raw.rowNumber);
+      }
+    }
+
+    if (normFirst && normLast && dateOfBirth) {
+      const identityKey = `${normFirst}_${normLast}_${dateOfBirth}`;
+      if (seenBatchIdentities.has(identityKey)) {
+        errors.push(`Duplicate student "${firstNameLatin} ${lastNameLatin}" (${dateOfBirth}) in this CSV batch (row #${seenBatchIdentities.get(identityKey)}).`);
+      } else {
+        seenBatchIdentities.set(identityKey, raw.rowNumber);
+      }
+    }
+
+    // Student identity matching against database
+    let matchedPerson: StudentPerson | undefined = undefined;
+
+    if (nationalIdNumber) {
+      const ninMatches = existingPersons.filter(
         (p) => p.nationalIdNumber?.trim().toLowerCase() === nationalIdNumber.toLowerCase()
       );
+
+      if (ninMatches.length > 1) {
+        errors.push(`Multiple existing student records share National ID "${nationalIdNumber}". Ambiguous match.`);
+      } else if (ninMatches.length === 1) {
+        const candidate = ninMatches[0];
+        const candFirst = normalizeName(candidate.firstNameLatin);
+        const candLast = normalizeName(candidate.lastNameLatin);
+
+        // Check for severe identity discrepancy
+        if (normFirst && normLast && (candFirst !== normFirst || candLast !== normLast)) {
+          errors.push(
+            `National ID "${nationalIdNumber}" matches database record for "${candidate.firstNameLatin} ${candidate.lastNameLatin}", but CSV specifies "${firstNameLatin} ${lastNameLatin}". Conflict detected.`
+          );
+        } else if (dateOfBirth && candidate.dateOfBirth && dateOfBirth !== candidate.dateOfBirth) {
+          errors.push(
+            `National ID "${nationalIdNumber}" matches database record, but Date of Birth differs (${candidate.dateOfBirth} vs ${dateOfBirth}). Conflict detected.`
+          );
+        } else {
+          matchedPerson = candidate;
+        }
+      }
     }
-    if (!matchedPerson && firstNameLatin && lastNameLatin) {
-      matchedPerson = existingPersons.find(
-        (p) =>
-          p.firstNameLatin.trim().toLowerCase() === firstNameLatin.toLowerCase() &&
-          p.lastNameLatin.trim().toLowerCase() === lastNameLatin.toLowerCase() &&
-          (!dateOfBirth || !p.dateOfBirth || p.dateOfBirth === dateOfBirth)
+
+    // Name + DOB match fallback if not matched by NIN
+    if (!matchedPerson && normFirst && normLast) {
+      const nameMatches = existingPersons.filter(
+        (p) => normalizeName(p.firstNameLatin) === normFirst && normalizeName(p.lastNameLatin) === normLast
       );
+
+      if (nameMatches.length > 1) {
+        // Rule E: Multiple candidate records with same name -> prohibit automatic match
+        errors.push(
+          `Multiple existing student records found for name "${firstNameLatin} ${lastNameLatin}". Ambiguous identity requires manual resolution.`
+        );
+      } else if (nameMatches.length === 1) {
+        const candidate = nameMatches[0];
+
+        // Rule C: Missing DOB on either record prohibits automatic merge
+        if (!dateOfBirth || !candidate.dateOfBirth) {
+          errors.push(
+            `A student named "${firstNameLatin} ${lastNameLatin}" exists in the database, but Date of Birth is missing on ${!dateOfBirth ? 'CSV row' : 'database record'}. Automatic merge prohibited for safety.`
+          );
+        } else if (candidate.dateOfBirth !== dateOfBirth) {
+          // Rule D: Conflicting DOB
+          errors.push(
+            `A student named "${firstNameLatin} ${lastNameLatin}" exists in the database with a different Date of Birth (${candidate.dateOfBirth} vs ${dateOfBirth}). Identity conflict.`
+          );
+        } else {
+          // Rule B: Exact name + exact DOB match
+          matchedPerson = candidate;
+        }
+      }
     }
 
     let isNewPerson = true;
@@ -425,7 +640,7 @@ export async function prepareStudentImportPreview(
       errors.push('Student is already actively enrolled in this academic year.');
     }
 
-    // Check register number conflict
+    // Check register number conflicts
     let hasRegisterConflict = false;
     let conflictDetails: string | undefined = undefined;
 
@@ -437,7 +652,7 @@ export async function prepareStudentImportPreview(
     } else if (seenRegisterNumbersInBatch.has(registerNumber)) {
       hasRegisterConflict = true;
       registerConflictCount++;
-      errors.push(`Register number #${registerNumber} appears multiple times in this CSV import.`);
+      errors.push(`Register number #${registerNumber} is duplicated within this CSV import.`);
       conflictDetails = `Duplicate register #${registerNumber} in CSV`;
     } else {
       seenRegisterNumbersInBatch.add(registerNumber);
@@ -487,11 +702,11 @@ export async function prepareStudentImportPreview(
 
 /**
  * Transactional execution of confirmed valid student rows.
- * Guaranteed to execute entirely in an atomic Dexie transaction.
+ * Guarantees atomic insertion of identities and enrollments.
  */
 export async function executeStudentImport(
   preview: ImportPreviewResult,
-  targetContext: { schoolId: string; academicYearId: string; classId: string }
+  targetContext: TargetImportContext
 ): Promise<ImportExecutionSummary> {
   if (preview.validRows.length === 0) {
     throw new Error('No valid student rows to import.');
@@ -504,12 +719,20 @@ export async function executeStudentImport(
 
   await db.transaction(
     'rw',
-    [db.studentPersons, db.studentEnrollments, db.academicYears, db.classes],
+    [db.studentPersons, db.studentEnrollments, db.academicYears, db.classes, db.schools],
     async () => {
-      // 1. Verify target class and academic year
+      // Re-verify target context inside atomic transaction
+      const school = await db.schools.get(targetContext.schoolId);
+      if (!school) {
+        throw new Error(`Target school with ID ${targetContext.schoolId} not found.`);
+      }
+
       const year = await db.academicYears.get(targetContext.academicYearId);
       if (!year) {
         throw new Error(`Academic year ${targetContext.academicYearId} not found.`);
+      }
+      if (year.schoolId !== targetContext.schoolId) {
+        throw new Error('Academic year does not belong to target school.');
       }
       if (year.isArchived) {
         throw new Error('Cannot import students into an archived academic year.');
@@ -519,16 +742,22 @@ export async function executeStudentImport(
       if (!schoolClass) {
         throw new Error(`Class ${targetContext.classId} not found.`);
       }
+      if (schoolClass.schoolId !== targetContext.schoolId) {
+        throw new Error('Target class does not belong to target school.');
+      }
       if (schoolClass.academicYearId !== targetContext.academicYearId) {
-        throw new Error('Class does not belong to the selected academic year.');
+        throw new Error('Target class does not belong to target academic year.');
+      }
+      if (schoolClass.isArchived) {
+        throw new Error('Cannot import students into an archived class.');
       }
 
-      // 2. Process each valid row
+      // Process each row
       for (const row of preview.validRows) {
         let personId = row.existingPersonId;
 
         if (!personId) {
-          // Create new StudentPerson
+          // Create new StudentPerson identity
           personId = crypto.randomUUID();
           const newPerson: StudentPerson = {
             id: personId,

@@ -1,5 +1,8 @@
 /**
  * UNS SCHOOL — School Class Repository
+ * Enforces SchoolClass.schoolId === AcademicYear.schoolId invariant,
+ * prevents class migration across academic years / schools (immutability),
+ * and enforces archived academic year read-only protection.
  */
 
 import { db } from '../database';
@@ -20,13 +23,30 @@ export const classRepository = {
 
   async create(schoolClass: SchoolClass): Promise<string> {
     const now = new Date().toISOString();
-    return await db.transaction('rw', [db.classes, db.academicYears], async () => {
+    return await db.transaction('rw', [db.classes, db.academicYears, db.schools], async () => {
+      // 1. Verify school exists
+      const school = await db.schools.get(schoolClass.schoolId);
+      if (!school) {
+        throw new Error(`School with id ${schoolClass.schoolId} not found.`);
+      }
+
+      // 2. Verify academic year exists
       const year = await db.academicYears.get(schoolClass.academicYearId);
-      if (year?.isArchived) {
+      if (!year) {
+        throw new Error(`Academic year with id ${schoolClass.academicYearId} not found.`);
+      }
+
+      // 3. Enforce structural invariant: Class schoolId MUST equal AcademicYear schoolId
+      if (year.schoolId !== schoolClass.schoolId) {
+        throw new Error('Class schoolId does not match AcademicYear schoolId.');
+      }
+
+      // 4. Archive protection: Cannot add classes to archived year
+      if (year.isArchived) {
         throw new Error('Cannot add new classes to an archived academic year.');
       }
 
-      // Check unique class name in academic year
+      // 5. Check unique class name in this academic year
       const duplicate = await db.classes
         .where('academicYearId')
         .equals(schoolClass.academicYearId)
@@ -55,16 +75,24 @@ export const classRepository = {
         throw new Error(`Class with id ${id} not found.`);
       }
 
+      // Immutability: Prohibit class migration across academic years or schools
+      if (updates.academicYearId !== undefined && updates.academicYearId !== existing.academicYearId) {
+        throw new Error('Class academicYearId cannot be changed after creation.');
+      }
+      if (updates.schoolId !== undefined && updates.schoolId !== existing.schoolId) {
+        throw new Error('Class schoolId cannot be changed after creation.');
+      }
+
+      // Archive protection: Cannot modify classes in archived academic year
       const year = await db.academicYears.get(existing.academicYearId);
       if (year?.isArchived) {
         throw new Error('Cannot modify classes in an archived academic year.');
       }
 
       if (updates.name && updates.name.trim().toLowerCase() !== existing.name.trim().toLowerCase()) {
-        const targetYearId = updates.academicYearId || existing.academicYearId;
         const duplicate = await db.classes
           .where('academicYearId')
-          .equals(targetYearId)
+          .equals(existing.academicYearId)
           .and((c) => c.name.trim().toLowerCase() === updates.name!.trim().toLowerCase() && c.id !== id)
           .first();
 

@@ -2,5 +2,7 @@
   "name": "Remix Uns School",
   "description": "Offline-first digital workspace for Algerian middle school English teachers",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
