@@ -325,7 +325,7 @@ describe('Phase 7 - Workflow Extras & Teacher Productivity', () => {
       await studentEnrollmentRepository.create(enrollment2);
 
       const sess: RemediationSession = {
-        id: 'rem-invalid',
+        id: 'rem-invalid-1',
         academicYearId: year.id,
         classId: cls.id, // Targeting class-1
         scheduledDate: '2023-11-01',
@@ -338,6 +338,87 @@ describe('Phase 7 - Workflow Extras & Teacher Productivity', () => {
       };
 
       await expect(remediationRepository.save(sess)).rejects.toThrow(/does not match remediation class/);
+    });
+
+    it('rejects remediation session if class does not exist or is archived', async () => {
+      const sess: RemediationSession = {
+        id: 'rem-invalid-2',
+        academicYearId: year.id,
+        classId: 'nonexistent-class',
+        scheduledDate: '2023-11-01',
+        identifiedPedagogicalWeakness: 'Test',
+        remedialActivitiesDescription: 'Test',
+        targetedStudentEnrollmentIds: [],
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/does not exist/);
+
+      await classRepository.update(cls.id, { isArchived: true });
+      sess.classId = cls.id;
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/archived class/);
+      await classRepository.update(cls.id, { isArchived: false });
+    });
+
+    it('rejects remediation session if targeted enrollment does not exist', async () => {
+      const sess: RemediationSession = {
+        id: 'rem-invalid-3',
+        academicYearId: year.id,
+        classId: cls.id,
+        scheduledDate: '2023-11-01',
+        identifiedPedagogicalWeakness: 'Test',
+        remedialActivitiesDescription: 'Test',
+        targetedStudentEnrollmentIds: ['nonexistent-enrollment'],
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/does not exist/);
+    });
+
+    it('rejects remediation session with invalid sequence level or competency level', async () => {
+      // Create sequence and competency for a different level code (e.g., '2AM' instead of '1AM')
+      await db.curriculumSequences.add({
+        id: 'seq-invalid',
+        curriculumVersionId: 'v1',
+        levelCode: '2AM',
+        sequenceNumber: 1,
+        title: 'Test',
+        targetedCompetencyIds: [],
+        plannedSessionsCount: 1,
+        order: 1,
+      });
+      
+      await db.competencies.add({
+        id: 'comp-invalid',
+        curriculumVersionId: 'v1',
+        levelCode: '2AM',
+        code: 'C1',
+        name: 'Test',
+        description: 'Test',
+        order: 1,
+      });
+
+      const sess: RemediationSession = {
+        id: 'rem-invalid-4',
+        academicYearId: year.id,
+        classId: cls.id,
+        sequenceId: 'seq-invalid',
+        scheduledDate: '2023-11-01',
+        identifiedPedagogicalWeakness: 'Test',
+        remedialActivitiesDescription: 'Test',
+        targetedStudentEnrollmentIds: [],
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/does not match class level code/);
+
+      delete sess.sequenceId;
+      sess.competencyId = 'comp-invalid';
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/does not match class level code/);
     });
   });
 });
