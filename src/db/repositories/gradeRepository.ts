@@ -15,6 +15,21 @@ export const gradeRepository = {
     return await db.grades.where('studentEnrollmentId').equals(studentEnrollmentId).toArray();
   },
 
+  async listByClassAndTerm(classId: string, termNumber: 1 | 2 | 3): Promise<GradeEntry[]> {
+    const assessments = await db.assessments
+      .where('classId')
+      .equals(classId)
+      .and((a) => a.termNumber === termNumber)
+      .toArray();
+
+    if (assessments.length === 0) {
+      return [];
+    }
+
+    const assessmentIds = assessments.map((a) => a.id);
+    return await db.grades.where('assessmentId').anyOf(assessmentIds).toArray();
+  },
+
   async getGrade(assessmentId: string, studentEnrollmentId: string): Promise<GradeEntry | undefined> {
     return await db.grades
       .where('assessmentId')
@@ -25,7 +40,7 @@ export const gradeRepository = {
 
   async saveBatch(assessmentId: string, entries: GradeEntry[]): Promise<void> {
     const now = new Date().toISOString();
-    await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.studentEnrollments], async () => {
+    await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.classes, db.studentEnrollments], async () => {
       // 1. Verify parent assessment exists and is not locked
       const assessment = await db.assessments.get(assessmentId);
       if (!assessment) {
@@ -41,7 +56,13 @@ export const gradeRepository = {
         throw new Error('Cannot modify grades in an archived academic year.');
       }
 
-      // 3. Upsert entries preventing duplicates per [assessmentId+studentEnrollmentId]
+      // 3. Verify class is not archived
+      const targetClass = await db.classes.get(assessment.classId);
+      if (targetClass?.isArchived) {
+        throw new Error('Cannot modify grades in an archived class.');
+      }
+
+      // 4. Upsert entries preventing duplicates per [assessmentId+studentEnrollmentId]
       for (const entry of entries) {
         const enrollment = await db.studentEnrollments.get(entry.studentEnrollmentId);
         if (!enrollment) {
@@ -89,7 +110,7 @@ export const gradeRepository = {
 
   async recordGrade(entry: GradeEntry): Promise<string> {
     const now = new Date().toISOString();
-    return await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.studentEnrollments], async () => {
+    return await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.classes, db.studentEnrollments], async () => {
       const assessment = await db.assessments.get(entry.assessmentId);
       if (!assessment) {
         throw new Error(`Assessment with id ${entry.assessmentId} does not exist.`);
@@ -100,6 +121,11 @@ export const gradeRepository = {
       const year = await db.academicYears.get(assessment.academicYearId);
       if (year?.isArchived) {
         throw new Error('Cannot modify grades in an archived academic year.');
+      }
+
+      const targetClass = await db.classes.get(assessment.classId);
+      if (targetClass?.isArchived) {
+        throw new Error('Cannot modify grades in an archived class.');
       }
 
       const enrollment = await db.studentEnrollments.get(entry.studentEnrollmentId);
@@ -143,4 +169,60 @@ export const gradeRepository = {
   async saveSingle(entry: GradeEntry): Promise<void> {
     await this.saveBatch(entry.assessmentId, [entry]);
   },
+
+  async clearGradeForStudent(assessmentId: string, studentEnrollmentId: string): Promise<void> {
+    await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.classes], async () => {
+      const assessment = await db.assessments.get(assessmentId);
+      if (!assessment) {
+        throw new Error(`Assessment with id ${assessmentId} does not exist.`);
+      }
+      if (assessment.isLocked) {
+        throw new Error('Assessment is locked. Cannot delete grades.');
+      }
+      const year = await db.academicYears.get(assessment.academicYearId);
+      if (year?.isArchived) {
+        throw new Error('Cannot delete grades in an archived academic year.');
+      }
+      const targetClass = await db.classes.get(assessment.classId);
+      if (targetClass?.isArchived) {
+        throw new Error('Cannot delete grades in an archived class.');
+      }
+
+      const existing = await db.grades
+        .where('assessmentId')
+        .equals(assessmentId)
+        .and((g) => g.studentEnrollmentId === studentEnrollmentId)
+        .first();
+
+      if (existing) {
+        await db.grades.delete(existing.id);
+      }
+    });
+  },
+
+  async deleteGrade(id: string): Promise<void> {
+    await db.transaction('rw', [db.grades, db.assessments, db.academicYears, db.classes], async () => {
+      const existing = await db.grades.get(id);
+      if (!existing) return;
+
+      const assessment = await db.assessments.get(existing.assessmentId);
+      if (assessment?.isLocked) {
+        throw new Error('Assessment is locked. Cannot delete grade.');
+      }
+
+      if (assessment) {
+        const year = await db.academicYears.get(assessment.academicYearId);
+        if (year?.isArchived) {
+          throw new Error('Cannot delete grades in an archived academic year.');
+        }
+        const targetClass = await db.classes.get(assessment.classId);
+        if (targetClass?.isArchived) {
+          throw new Error('Cannot delete grades in an archived class.');
+        }
+      }
+
+      await db.grades.delete(id);
+    });
+  },
 };
+

@@ -6,7 +6,7 @@
  * Never executes arbitrary scripts or expressions via eval() or Function().
  */
 
-import type { GradingScheme, Assessment, GradeEntry } from '../types';
+import type { GradingScheme, Assessment, GradeEntry, AssessmentStatistics, StudentEnrollment } from '../types';
 
 export interface CalculatedStudentGradeResult {
   studentEnrollmentId: string;
@@ -23,6 +23,23 @@ export interface CalculatedStudentGradeResult {
   weightedAverage: number | null; // Final score scaled to maxOverallScore (e.g. 0 to 20)
   isComplete: boolean; // True if all mandatory components have been recorded
   totalCoefficients: number;
+}
+
+export interface ClassTermOverview {
+  termNumber: 1 | 2 | 3;
+  studentResults: CalculatedStudentGradeResult[];
+  statistics: {
+    totalEnrolled: number;
+    evaluatedCount: number;
+    completeCount: number;
+    missingCount: number;
+    classAverage: number | null;
+    highestScore: number | null;
+    lowestScore: number | null;
+    passCount: number;
+    passRatePercentage: number;
+  };
+  componentAverages: Record<string, { averageScore: number | null; evaluatedCount: number }>;
 }
 
 export const gradingCalculationService = {
@@ -56,6 +73,7 @@ export const gradingCalculationService = {
       let validAssessmentCount = 0;
       let isAbsent = false;
       let isMedicalExemption = false;
+      let recordedCount = 0;
 
       for (const assessment of matchingAssessments) {
         const grade = grades.find(
@@ -66,6 +84,8 @@ export const gradingCalculationService = {
           if (component.isMandatory) hasMissingMandatory = true;
           continue;
         }
+
+        recordedCount++;
 
         if (grade.isMedicalExemption) {
           isMedicalExemption = true;
@@ -90,7 +110,7 @@ export const gradingCalculationService = {
         }
       }
 
-      const finalComponentScore = validAssessmentCount > 0 ? componentScoreSum / validAssessmentCount : null;
+      const finalComponentScore = validAssessmentCount > 0 ? parseFloat((componentScoreSum / validAssessmentCount).toFixed(2)) : null;
 
       componentScores[component.componentKey] = {
         score: finalComponentScore,
@@ -114,6 +134,77 @@ export const gradingCalculationService = {
       weightedAverage,
       isComplete: !hasMissingMandatory && weightedAverage !== null,
       totalCoefficients,
+    };
+  },
+
+  /**
+   * Calculates comprehensive statistics for a single assessment.
+   */
+  calculateAssessmentStatistics(
+    assessment: Assessment,
+    grades: GradeEntry[],
+    totalEnrolled: number
+  ): AssessmentStatistics {
+    const matchingGrades = grades.filter((g) => g.assessmentId === assessment.id);
+    const exemptGrades = matchingGrades.filter((g) => g.isMedicalExemption);
+    const absentGrades = matchingGrades.filter((g) => g.isAbsent && !g.isMedicalExemption);
+    
+    // Valid numerical scores
+    const scoredGrades = matchingGrades.filter(
+      (g) => g.score !== null && g.score !== undefined && !g.isMedicalExemption && !g.isAbsent
+    );
+
+    const enteredCount = matchingGrades.filter(
+      (g) => (g.score !== null && g.score !== undefined) || g.isAbsent || g.isMedicalExemption
+    ).length;
+
+    const missingCount = Math.max(0, totalEnrolled - enteredCount);
+
+    // Calculate effective scores including unexcused absences as 0
+    const effectiveScores: number[] = [
+      ...scoredGrades.map((g) => g.score as number),
+      ...absentGrades.map(() => 0),
+    ];
+
+    if (effectiveScores.length === 0) {
+      return {
+        assessmentId: assessment.id,
+        totalEnrolled,
+        enteredCount,
+        missingCount,
+        absentCount: absentGrades.length,
+        exemptCount: exemptGrades.length,
+        averageScore: null,
+        averageNormalizedScore: null,
+        highestScore: null,
+        lowestScore: null,
+        passCount: 0,
+        passRatePercentage: 0,
+      };
+    }
+
+    const sum = effectiveScores.reduce((acc, curr) => acc + curr, 0);
+    const rawAverage = sum / effectiveScores.length;
+    const normalizedAverage = (rawAverage / assessment.maxScore) * 20;
+    const highest = Math.max(...effectiveScores);
+    const lowest = Math.min(...effectiveScores);
+    const passingThreshold = assessment.maxScore / 2; // e.g. 10/20
+    const passCount = effectiveScores.filter((s) => s >= passingThreshold).length;
+    const passRatePercentage = parseFloat(((passCount / effectiveScores.length) * 100).toFixed(1));
+
+    return {
+      assessmentId: assessment.id,
+      totalEnrolled,
+      enteredCount,
+      missingCount,
+      absentCount: absentGrades.length,
+      exemptCount: exemptGrades.length,
+      averageScore: parseFloat(rawAverage.toFixed(2)),
+      averageNormalizedScore: parseFloat(normalizedAverage.toFixed(2)),
+      highestScore: highest,
+      lowestScore: lowest,
+      passCount,
+      passRatePercentage,
     };
   },
 
@@ -157,4 +248,65 @@ export const gradingCalculationService = {
       passRatePercentage: parseFloat(((passCount / validScores.length) * 100).toFixed(1)),
     };
   },
+
+  /**
+   * Produces a full term overview for a class, including all student evaluations and class aggregate metrics.
+   */
+  calculateClassTermOverview(params: {
+    termNumber: 1 | 2 | 3;
+    scheme: GradingScheme;
+    assessments: Assessment[];
+    enrollments: StudentEnrollment[];
+    grades: GradeEntry[];
+  }): ClassTermOverview {
+    const { termNumber, scheme, assessments, enrollments, grades } = params;
+
+    const termAssessments = assessments.filter((a) => a.termNumber === termNumber);
+    const studentResults: CalculatedStudentGradeResult[] = enrollments.map((e) =>
+      this.calculateStudentTermGrade(e.id, scheme, termAssessments, grades)
+    );
+
+    const stats = this.calculateClassTermStatistics(studentResults);
+    const completeCount = studentResults.filter((r) => r.isComplete).length;
+    const missingCount = enrollments.length - completeCount;
+
+    // Component-level averages
+    const componentAverages: Record<string, { averageScore: number | null; evaluatedCount: number }> = {};
+    for (const comp of scheme.components) {
+      const validCompScores = studentResults
+        .map((r) => r.componentScores[comp.componentKey]?.score)
+        .filter((s): s is number => s !== null && s !== undefined);
+
+      if (validCompScores.length > 0) {
+        const compSum = validCompScores.reduce((acc, curr) => acc + curr, 0);
+        componentAverages[comp.componentKey] = {
+          averageScore: parseFloat((compSum / validCompScores.length).toFixed(2)),
+          evaluatedCount: validCompScores.length,
+        };
+      } else {
+        componentAverages[comp.componentKey] = {
+          averageScore: null,
+          evaluatedCount: 0,
+        };
+      }
+    }
+
+    return {
+      termNumber,
+      studentResults,
+      statistics: {
+        totalEnrolled: enrollments.length,
+        evaluatedCount: stats.totalEvaluated,
+        completeCount,
+        missingCount,
+        classAverage: stats.classAverage,
+        highestScore: stats.highestScore,
+        lowestScore: stats.lowestScore,
+        passCount: stats.passCount,
+        passRatePercentage: stats.passRatePercentage,
+      },
+      componentAverages,
+    };
+  },
 };
+

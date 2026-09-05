@@ -62,6 +62,7 @@ export function App() {
                   <Route path="cahier-textes" element={<CahierTextesPage />} />
                   <Route path="attendance" element={<AttendancePage />} />
                   <Route path="assessment" element={<AssessmentPage />} />
+                  <Route path="assessments" element={<Navigate to="/assessment" replace />} />
                   <Route path="gradebook" element={<GradebookPage />} />
                   <Route path="curriculum" element={<CurriculumPage />} />
                   <Route path="resources" element={<ResourcesPage />} />

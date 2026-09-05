@@ -258,4 +258,63 @@ describe('Grading Calculation Engine', () => {
     expect(result.weightedAverage).toBe(16);
     expect(result.totalCoefficients).toBe(3);
   });
+
+  it('calculates comprehensive statistics for single assessment', () => {
+    const testAssessment = assessments[0]; // maxScore = 20
+    const testGrades: GradeEntry[] = [
+      { id: 'g1', assessmentId: testAssessment.id, studentEnrollmentId: 's1', score: 18, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g2', assessmentId: testAssessment.id, studentEnrollmentId: 's2', score: 14, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g3', assessmentId: testAssessment.id, studentEnrollmentId: 's3', score: 8, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g4', assessmentId: testAssessment.id, studentEnrollmentId: 's4', score: null, isAbsent: true, isMedicalExemption: false, updatedAt: '' }, // treated as 0
+      { id: 'g5', assessmentId: testAssessment.id, studentEnrollmentId: 's5', score: null, isAbsent: true, isMedicalExemption: true, updatedAt: '' }, // exempt
+    ];
+
+    const stats = gradingCalculationService.calculateAssessmentStatistics(testAssessment, testGrades, 6);
+    expect(stats.totalEnrolled).toBe(6);
+    expect(stats.enteredCount).toBe(5);
+    expect(stats.missingCount).toBe(1);
+    expect(stats.absentCount).toBe(1);
+    expect(stats.exemptCount).toBe(1);
+    // Effective scores: 18, 14, 8, 0 -> sum = 40, count = 4 -> average = 10
+    expect(stats.averageScore).toBe(10);
+    expect(stats.highestScore).toBe(18);
+    expect(stats.lowestScore).toBe(0);
+    expect(stats.passCount).toBe(2); // 18, 14 are >= 10
+    expect(stats.passRatePercentage).toBe(50);
+  });
+
+  it('calculates class term overview with per-student results and aggregate metrics', () => {
+    const enrollments = [
+      { id: 's1', studentPersonId: 'p1', academicYearId: 'year-1', classId: 'class-1', registerNumber: 1, isRepeating: false, status: 'active' as const, createdAt: '', updatedAt: '' },
+      { id: 's2', studentPersonId: 'p2', academicYearId: 'year-1', classId: 'class-1', registerNumber: 2, isRepeating: false, status: 'active' as const, createdAt: '', updatedAt: '' },
+    ];
+    const testGrades: GradeEntry[] = [
+      { id: 'g1', assessmentId: 'ass-cc', studentEnrollmentId: 's1', score: 14, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g2', assessmentId: 'ass-test', studentEnrollmentId: 's1', score: 12, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g3', assessmentId: 'ass-exam', studentEnrollmentId: 's1', score: 16, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g4', assessmentId: 'ass-cc', studentEnrollmentId: 's2', score: 10, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g5', assessmentId: 'ass-test', studentEnrollmentId: 's2', score: 8, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+      { id: 'g6', assessmentId: 'ass-exam', studentEnrollmentId: 's2', score: 10, isAbsent: false, isMedicalExemption: false, updatedAt: '' },
+    ];
+
+    const overview = gradingCalculationService.calculateClassTermOverview({
+      termNumber: 1,
+      scheme: sampleScheme,
+      assessments,
+      enrollments,
+      grades: testGrades,
+    });
+
+    expect(overview.statistics.totalEnrolled).toBe(2);
+    expect(overview.statistics.completeCount).toBe(2);
+    expect(overview.statistics.missingCount).toBe(0);
+    // s1 weightedAverage = 14.5, s2 weightedAverage = (10*1 + 8*1 + 10*2)/4 = 38/4 = 9.5
+    // classAverage = (14.5 + 9.5)/2 = 12.0
+    expect(overview.statistics.classAverage).toBe(12);
+    expect(overview.statistics.highestScore).toBe(14.5);
+    expect(overview.statistics.lowestScore).toBe(9.5);
+    expect(overview.statistics.passCount).toBe(1);
+    expect(overview.statistics.passRatePercentage).toBe(50);
+  });
 });
+
