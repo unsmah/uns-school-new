@@ -17,7 +17,7 @@ A specialized, client-only, offline-first digital workspace tailored for Algeria
 - **Class Roster & Enrollment Lifecycle**: Sequential class register numbering (`registerNumber`) with strict uniqueness validation, repeating flag (`isRepeating`), and status lifecycle (`active`, `transferred_out`, `withdrawn`, `suspended`).
 - **Robust CSV Roster Import Engine**: Delimiter detection, RFC 4180 parsing, multi-pass validation, and atomic IndexedDB execution.
 
-### 3. Classroom Operations (Phase 3 Hardened & Audit-Approved)
+### 3. Classroom Operations (Phase 3 Implemented & Hardened — External Audit Pending)
 - **Weekly Timetable Scheduling**:
   - Sunday–Thursday Algerian middle school schedule (Periods 1–8).
   - Class-scoped conflict checking (`academicYearId + classId + dayOfWeek + periodNumber`).
