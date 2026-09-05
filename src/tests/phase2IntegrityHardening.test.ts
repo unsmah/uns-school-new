@@ -403,11 +403,21 @@ describe('Phase 2 Integrity Hardening & Domain Invariant Tests', () => {
   });
 
   describe('Fix #7 & #8 — Context Validation & Delimiter Detection', () => {
-    it('supports semicolon, tab, and pipe delimiters cleanly', () => {
+    it('supports comma, semicolon, tab, and pipe delimiters cleanly', () => {
+      const commaCsv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth\n1,Karim,Ziani,M,2012-01-01`;
+      const parsedComma = parseCsvText(commaCsv);
+      expect(parsedComma.length).toBe(1);
+      expect(parsedComma[0].data.firstNameLatin).toBe('Karim');
+
       const semicolonCsv = `registerNumber;firstNameLatin;lastNameLatin;gender;dateOfBirth\n1;Ali;Bennani;M;2012-01-01`;
       const parsedSemicolon = parseCsvText(semicolonCsv);
       expect(parsedSemicolon.length).toBe(1);
       expect(parsedSemicolon[0].data.firstNameLatin).toBe('Ali');
+
+      const tabCsv = `registerNumber\tfirstNameLatin\tlastNameLatin\tgender\tdateOfBirth\n1\tRiyad\tMahrez\tM\t2012-01-01`;
+      const parsedTab = parseCsvText(tabCsv);
+      expect(parsedTab.length).toBe(1);
+      expect(parsedTab[0].data.firstNameLatin).toBe('Riyad');
 
       const pipeCsv = `registerNumber|firstNameLatin|lastNameLatin|gender|dateOfBirth\n1|Sofiane|Feghouli|M|2012-01-01`;
       const parsedPipe = parseCsvText(pipeCsv);
@@ -425,6 +435,112 @@ describe('Phase 2 Integrity Hardening & Domain Invariant Tests', () => {
           classId: class1Id,
         })
       ).rejects.toThrow(/Target academic year does not belong to the selected school/i);
+    });
+  });
+
+  describe('Fix #9 — Non-Mutating Preview & Atomic Execution Verification', () => {
+    it('guarantees that preparing a preview does not insert any records into IndexedDB', async () => {
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth\n1,PreviewOnly,Student,M,2012-03-03`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.validRows.length).toBe(1);
+
+      // Verify zero records were written to DB during preview
+      const personsCount = await db.studentPersons.count();
+      const enrollmentsCount = await db.studentEnrollments.count();
+      expect(personsCount).toBe(0);
+      expect(enrollmentsCount).toBe(0);
+    });
+
+    it('commits all records atomically upon execution', async () => {
+      const csv = `registerNumber,firstNameLatin,lastNameLatin,gender,dateOfBirth\n1,AtomicOne,Test,M,2012-01-01\n2,AtomicTwo,Test,F,2012-02-02`;
+
+      const preview = await prepareStudentImportPreview(csv, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(preview.canExecute).toBe(true);
+
+      const summary = await executeStudentImport(preview, {
+        schoolId,
+        academicYearId: year1Id,
+        classId: class1Id,
+      });
+
+      expect(summary.createdPersonsCount).toBe(2);
+      expect(summary.createdEnrollmentsCount).toBe(2);
+
+      const dbPersons = await db.studentPersons.toArray();
+      const dbEnrollments = await db.studentEnrollments.toArray();
+      expect(dbPersons.length).toBe(2);
+      expect(dbEnrollments.length).toBe(2);
+      expect(dbEnrollments.map((e) => e.registerNumber).sort()).toEqual([1, 2]);
+    });
+  });
+
+  describe('Fix #10 — Repository Level School & Class Invariant Checks', () => {
+    it('rejects academic year creation for non-existent schoolId', async () => {
+      const invalidYear: AcademicYear = {
+        id: 'year-ghost-school',
+        schoolId: 'non-existent-school-id',
+        label: '2026-2027',
+        startDate: '2026-09-01',
+        endDate: '2027-06-30',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(academicYearRepository.create(invalidYear)).rejects.toThrow(
+        /School with id non-existent-school-id not found/i
+      );
+    });
+
+    it('rejects enrolling student into an archived class', async () => {
+      const person: StudentPerson = {
+        id: 'person-test-archived-cls',
+        firstNameLatin: 'Amina',
+        lastNameLatin: 'Belkacem',
+        gender: 'F',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(person);
+
+      const archivedClass: SchoolClass = {
+        id: 'class-archived-target',
+        schoolId,
+        academicYearId: year1Id,
+        levelCode: '1MS',
+        name: '1MS Archived',
+        isArchived: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await db.classes.add(archivedClass);
+
+      await expect(
+        studentEnrollmentRepository.enroll({
+          id: 'enr-test-1',
+          studentPersonId: person.id,
+          academicYearId: year1Id,
+          classId: archivedClass.id,
+          registerNumber: 1,
+          isRepeating: false,
+          status: 'active',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+      ).rejects.toThrow(/Cannot enroll students in an archived class/i);
     });
   });
 });

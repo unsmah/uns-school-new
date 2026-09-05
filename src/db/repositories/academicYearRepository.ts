@@ -29,7 +29,12 @@ export const academicYearRepository = {
 
   async create(year: AcademicYear): Promise<string> {
     const now = new Date().toISOString();
-    return await db.transaction('rw', db.academicYears, async () => {
+    return await db.transaction('rw', [db.academicYears, db.schools], async () => {
+      const school = await db.schools.get(year.schoolId);
+      if (!school) {
+        throw new Error(`School with id ${year.schoolId} not found.`);
+      }
+
       if (year.isCurrent) {
         // Demote any existing current academic year FOR THIS SCHOOL ONLY
         const schoolYears = await db.academicYears.where('schoolId').equals(year.schoolId).toArray();
@@ -52,10 +57,17 @@ export const academicYearRepository = {
 
   async update(id: string, updates: Partial<AcademicYear>): Promise<void> {
     const now = new Date().toISOString();
-    await db.transaction('rw', db.academicYears, async () => {
+    await db.transaction('rw', [db.academicYears, db.schools], async () => {
       const existing = await db.academicYears.get(id);
       if (!existing) {
         throw new Error(`Academic year with id ${id} not found.`);
+      }
+
+      if (updates.schoolId) {
+        const school = await db.schools.get(updates.schoolId);
+        if (!school) {
+          throw new Error(`School with id ${updates.schoolId} not found.`);
+        }
       }
 
       if (existing.isArchived && !updates.isArchived) {

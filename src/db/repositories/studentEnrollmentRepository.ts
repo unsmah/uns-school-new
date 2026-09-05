@@ -68,10 +68,16 @@ export const studentEnrollmentRepository = {
       if (!schoolClass) {
         throw new Error(`Class with id ${enrollment.classId} does not exist.`);
       }
+      if (schoolClass.isArchived) {
+        throw new Error('Cannot enroll students in an archived class.');
+      }
 
-      // 4. Verify class/year relationship
+      // 4. Verify class/year relationship and school consistency
       if (schoolClass.academicYearId !== enrollment.academicYearId) {
         throw new Error(`Class ${enrollment.classId} does not belong to academic year ${enrollment.academicYearId}.`);
+      }
+      if (schoolClass.schoolId !== year.schoolId) {
+        throw new Error(`Class schoolId does not match AcademicYear schoolId.`);
       }
 
       // 5. Enforce: One active enrollment per academic year per person
@@ -159,10 +165,16 @@ export const studentEnrollmentRepository = {
         if (!targetClass) {
           throw new Error(`Class with id ${targetClassId} does not exist.`);
         }
+        if (targetClass.isArchived) {
+          throw new Error('Cannot enroll students in an archived class.');
+        }
 
-        // 4. Verify class/year relationship
+        // 4. Verify class/year relationship and school consistency
         if (targetClass.academicYearId !== targetAcademicYearId) {
           throw new Error(`Class ${targetClassId} does not belong to academic year ${targetAcademicYearId}.`);
+        }
+        if (targetClass.schoolId !== targetYear.schoolId) {
+          throw new Error(`Class schoolId does not match AcademicYear schoolId.`);
         }
 
         // 5. Active enrollment uniqueness

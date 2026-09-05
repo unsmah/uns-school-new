@@ -1,37 +1,45 @@
-# UNS SCHOOL — Features (Phase 1 Current Implementation)
+# UNS SCHOOL — Feature Specifications
 
-A specialized, client-only digital workspace tailored for Algerian middle school English teachers.
+A specialized, client-only, offline-first digital workspace tailored for Algerian middle school English teachers (1AM–4AM / 1MS–4MS).
 
-## Implemented Core Features
+---
 
-### 1. Administrative Structure & Setup
-- **School & Profile Management**: Configure school metadata (name in Latin and Arabic, commune, wilaya, school code) and teacher identification.
-- **Academic Years & Trimesters**: School-scoped academic year management with trimester dates (1st, 2nd, 3rd Trimesters), current year assignment, and historical archiving.
-- **Class Organization**: Classes for 1MS, 2MS, 3MS, and 4MS levels with room assignments and color tags.
+## Implemented Features (Phase 1 Foundation & Phase 2 Administrative Core)
 
-### 2. Student Registry & Enrollment
-- **Two-Tier Model**: Separation of civil identity (`StudentPerson`) from annual class placement (`StudentEnrollment`).
-- **Class Lists**: Sequential register numbering (`registerNumber`) with strict uniqueness checks.
-- **Enrollment Lifecycles**: Support for active, transferred, withdrawn, and graduated statuses with audit timestamps.
+### 1. Administrative Structure & School Management (Phase 2 Completed)
+- **School Profile & Setup**: Configure middle school metadata (name in Latin and Arabic, commune, wilaya, official school code) and teacher identification profile.
+- **Academic Years & Trimesters**: School-scoped academic year management with trimester calendar dates (1st, 2nd, 3rd Trimesters), single-current year invariant enforcement, and historical archiving.
+- **Middle School Classes**: Scoped class divisions (1MS, 2MS, 3MS, 4MS) bound to the active academic year, capacity indicators, room numbers, and color tags.
 
-### 3. Curriculum Architecture
-- **National Curriculum 2nd Generation (2016)**: Pre-seeded official competencies (C1, C2, C3), levels (1AM–4AM), exemplary sequences, and rubrics.
-- **Data-Driven Model**: Extensible for multiple curriculum versions and syllabi without schema changes.
+### 2. Student Registry & Multi-Year Progression (Phase 2 Completed)
+- **Two-Tier Identity Architecture**: Strict separation of permanent civil identity (`StudentPerson`) from annual class enrollment (`StudentEnrollment`).
+- **Student Directory & Profiling**: Searchable directory with RTL Arabic support, NIN privacy, and multi-year chronological timeline showing past enrollments.
+- **Class Roster & Enrollment Lifecycle**: Sequential class register numbering (`registerNumber`) with strict uniqueness validation, repeating flag (`isRepeating`), and status lifecycle (`active`, `transferred_out`, `withdrawn`, `suspended`).
+- **Robust CSV Roster Import Engine**:
+  - Delimiter auto-detection (comma, semicolon, tab, pipe).
+  - RFC 4180 parsing with multilingual header mapping (Latin/French/Arabic).
+  - Multi-pass validation: DOB calendar checks (including leap years), strict gender validation (never silently defaulting), duplicate NIN conflict flagging, and ambiguous name disambiguation.
+  - Zero-mutation preview stage with user confirmation before atomic IndexedDB transaction execution.
 
-### 4. Lesson Planning & Session Execution
-- **Lesson Management**: Structured lessons anchored to curriculum levels, sequences, and rubrics.
-- **Cahier Journal & Cahier de Textes**: Pedagogical logs tracking classroom activities and homework tasks.
+### 3. Local Storage, Offline Reliability & PWA (Phase 1 Completed)
+- **100% Client-Only PWA**: Standalone installable PWA with full offline capabilities via service worker caching.
+- **Storage Diagnostics & Telemetry**: StorageManager API quota checks, persistence grant classification, and disaster recovery backup reminders.
 
-### 5. Attendance Management
-- **Lesson-Anchored Attendance**: Attendance records bound directly to the lesson event and date.
-- **Status Tracking**: Present, late (with minute tracking), excused absence, and unexcused absence.
-- **Class Integrity**: Prevents logging attendance for students enrolled in different classes or years.
+---
 
-### 6. Official Grading & Assessments
-- **Trimester Assessment Workflow**: Continuous assessment (assiduité / participation), term test (devoir surveillé), and composition exam.
-- **Gradebook Entry**: Validated score inputs (0 to 20), absent tracking, and medical exemption handling.
-- **Declarative Grade Calculation**: Weighted averages complying with ministerial circulars.
+## Planned Future Phases (Not Yet Implemented)
 
-### 7. Local Storage & Offline Reliability
-- **Offline PWA**: Full functionality without internet connection.
-- **Storage Diagnostics**: StorageManager API persistence checks, quota estimation, and backup warnings.
+### Phase 3 — Classroom Operations & Pedagogical Execution (Future)
+- Lesson planning & syllabus sequence progression.
+- Automated Cahier Journal & Cahier de Textes derivation.
+- Lesson-anchored attendance tracking.
+
+### Phase 4 — Continuous Assessment & Grading Engine (Future)
+- Trimester grading workflow (Continuous Assessment, Term Test, Composition Exam).
+- Declarative weighted arithmetic calculations without dynamic code evaluation.
+- Official bulletin and gradebook exports.
+
+### Phase 5 — Offline Resources & Inspection Deliverables (Future)
+- Inspector-mandated document generation and PDF export.
+- Pedagogical material repository.
+
