@@ -71,3 +71,6 @@ export interface LearningObjectiveDefinition {
   description: string;
   order: number;
 }
+
+export type CurriculumCompetency = CompetencyDefinition;
+export type CurriculumObjective = LearningObjectiveDefinition;

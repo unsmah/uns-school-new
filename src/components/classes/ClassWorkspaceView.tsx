@@ -160,29 +160,42 @@ export const ClassWorkspaceView: React.FC<ClassWorkspaceViewProps> = ({
         </div>
 
         {/* Quick Launch Buttons */}
-        {!isReadOnly && (
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsLessonModalOpen(true)}
-              className="gap-1 text-xs"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-              Log Session
-            </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate(`/cahier-textes?classId=${schoolClass.id}`)}
+            className="gap-1 text-xs"
+            title="Open official Cahier de Textes register for this class"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+            Cahier de Textes
+          </Button>
 
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={() => navigate(`/attendance?classId=${schoolClass.id}`)}
-              className="gap-1 text-xs"
-            >
-              <UserCheck className="w-3.5 h-3.5" />
-              Take Attendance
-            </Button>
-          </div>
-        )}
+          {!isReadOnly && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsLessonModalOpen(true)}
+                className="gap-1 text-xs"
+              >
+                <Plus className="w-3.5 h-3.5 text-emerald-600" />
+                Log Session
+              </Button>
+
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(`/attendance?classId=${schoolClass.id}`)}
+                className="gap-1 text-xs"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                Take Attendance
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Tabs Navigation */}

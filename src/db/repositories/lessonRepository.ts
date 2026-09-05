@@ -37,6 +37,10 @@ export const lessonRepository = {
       .sortBy('startTime');
   },
 
+  async listByAcademicYearAndDate(academicYearId: string, date: string): Promise<Lesson[]> {
+    return this.listByDateAndAcademicYear(date, academicYearId);
+  },
+
   async listByAcademicYear(academicYearId: string): Promise<Lesson[]> {
     return await db.lessons.where('academicYearId').equals(academicYearId).toArray();
   },
@@ -58,6 +62,8 @@ export const lessonRepository = {
         db.curriculumLevels,
         db.curriculumSequences,
         db.sessionRubrics,
+        db.competencies,
+        db.homework,
       ],
       async () => {
         // 1. Academic year validation
@@ -143,11 +149,52 @@ export const lessonRepository = {
           }
         }
 
+        // 7. Targeted competencies validation
+        const competencyCount = await db.competencies
+          .where('curriculumVersionId')
+          .equals(lesson.curriculumVersionId)
+          .count();
+        if (competencyCount > 0 && lesson.targetedCompetencyIds && lesson.targetedCompetencyIds.length > 0) {
+          for (const compId of lesson.targetedCompetencyIds) {
+            const comp = await db.competencies.get(compId);
+            if (!comp) {
+              throw new Error(`Targeted competency with id ${compId} does not exist.`);
+            }
+            if (comp.curriculumVersionId !== lesson.curriculumVersionId) {
+              throw new Error(
+                `Targeted competency ${compId} belongs to curriculum version ${comp.curriculumVersionId}, not ${lesson.curriculumVersionId}.`
+              );
+            }
+            if (comp.levelCode && comp.levelCode !== 'ALL' && effectiveLevel && comp.levelCode !== effectiveLevel) {
+              throw new Error(
+                `Targeted competency ${compId} is configured for level ${comp.levelCode}, not lesson level ${effectiveLevel}.`
+              );
+            }
+          }
+        }
+
         await db.lessons.add({
           ...lesson,
           createdAt: lesson.createdAt || now,
           updatedAt: now,
         });
+
+        // Synchronize homework task if assigned
+        if (lesson.assignedHomeworkTitle) {
+          await db.homework.put({
+            id: `hw-${lesson.id}`,
+            classId: lesson.classId,
+            lessonId: lesson.id,
+            academicYearId: lesson.academicYearId,
+            assignedDate: lesson.date,
+            dueDate: lesson.assignedHomeworkDueDate || lesson.date,
+            title: lesson.assignedHomeworkTitle,
+            instructions: lesson.assignedHomeworkInstructions || '',
+            isCompleted: false,
+            createdAt: lesson.createdAt || now,
+            updatedAt: now,
+          });
+        }
 
         return lesson.id;
       }
@@ -172,6 +219,8 @@ export const lessonRepository = {
         db.curriculumLevels,
         db.curriculumSequences,
         db.sessionRubrics,
+        db.competencies,
+        db.homework,
       ],
       async () => {
         const existing = await db.lessons.get(id);
@@ -203,16 +252,17 @@ export const lessonRepository = {
           updates.curriculumVersionId !== undefined ||
           updates.levelCode !== undefined ||
           updates.sequenceId !== undefined ||
-          updates.rubricId !== undefined;
+          updates.rubricId !== undefined ||
+          updates.targetedCompetencyIds !== undefined;
+
+        const targetYearId = updates.academicYearId ?? existing.academicYearId;
+        const targetClassId = updates.classId ?? existing.classId;
+        const targetCurriculumVersionId = updates.curriculumVersionId ?? existing.curriculumVersionId;
+        const targetLevelCode = updates.levelCode ?? existing.levelCode;
+        const targetSequenceId = updates.sequenceId !== undefined ? updates.sequenceId : existing.sequenceId;
+        const targetRubricId = updates.rubricId !== undefined ? updates.rubricId : existing.rubricId;
 
         if (isChangingRelationships) {
-          const targetYearId = updates.academicYearId ?? existing.academicYearId;
-          const targetClassId = updates.classId ?? existing.classId;
-          const targetCurriculumVersionId = updates.curriculumVersionId ?? existing.curriculumVersionId;
-          const targetLevelCode = updates.levelCode ?? existing.levelCode;
-          const targetSequenceId = updates.sequenceId !== undefined ? updates.sequenceId : existing.sequenceId;
-          const targetRubricId = updates.rubricId !== undefined ? updates.rubricId : existing.rubricId;
-
           const targetYear = await db.academicYears.get(targetYearId);
           if (!targetYear) {
             throw new Error(`Academic year with id ${targetYearId} does not exist.`);
@@ -292,26 +342,94 @@ export const lessonRepository = {
               );
             }
           }
+
+          // Competencies validation
+          const targetCompetencyIds = updates.targetedCompetencyIds ?? existing.targetedCompetencyIds;
+          const competencyCount = await db.competencies
+            .where('curriculumVersionId')
+            .equals(targetCurriculumVersionId)
+            .count();
+          if (competencyCount > 0 && targetCompetencyIds && targetCompetencyIds.length > 0) {
+            for (const compId of targetCompetencyIds) {
+              const comp = await db.competencies.get(compId);
+              if (!comp) {
+                throw new Error(`Targeted competency with id ${compId} does not exist.`);
+              }
+              if (comp.curriculumVersionId !== targetCurriculumVersionId) {
+                throw new Error(
+                  `Targeted competency ${compId} belongs to curriculum version ${comp.curriculumVersionId}, not ${targetCurriculumVersionId}.`
+                );
+              }
+              if (comp.levelCode && comp.levelCode !== 'ALL' && effectiveLevel && comp.levelCode !== effectiveLevel) {
+                throw new Error(
+                  `Targeted competency ${compId} is configured for level ${comp.levelCode}, not lesson level ${effectiveLevel}.`
+                );
+              }
+            }
+          }
         }
 
-      // If lesson date was updated, synchronize all anchored attendance records atomically
-      if (updates.date && updates.date !== existing.date) {
-        const linkedAttendance = await db.attendance.where('lessonId').equals(id).toArray();
-        for (const record of linkedAttendance) {
-          await db.attendance.update(record.id, { date: updates.date, updatedAt: now });
+        // If lesson date was updated, synchronize all anchored attendance & homework records atomically
+        const newDate = updates.date ?? existing.date;
+        if (updates.date && updates.date !== existing.date) {
+          const linkedAttendance = await db.attendance.where('lessonId').equals(id).toArray();
+          for (const record of linkedAttendance) {
+            await db.attendance.update(record.id, { date: updates.date, updatedAt: now });
+          }
+          const linkedHomework = await db.homework.where('lessonId').equals(id).toArray();
+          for (const hw of linkedHomework) {
+            await db.homework.update(hw.id, { assignedDate: updates.date, updatedAt: now });
+          }
         }
+
+        // Synchronize homework task if homework fields were updated
+        if ('assignedHomeworkTitle' in updates) {
+          const trimmedHwTitle = updates.assignedHomeworkTitle?.trim();
+          const existingHw = await db.homework.where('lessonId').equals(id).first();
+          if (trimmedHwTitle) {
+            if (existingHw) {
+              await db.homework.update(existingHw.id, {
+                title: trimmedHwTitle,
+                instructions: updates.assignedHomeworkInstructions ?? existingHw.instructions,
+                dueDate: updates.assignedHomeworkDueDate ?? existingHw.dueDate,
+                classId: targetClassId,
+                academicYearId: targetYearId,
+                assignedDate: newDate,
+                updatedAt: now,
+              });
+            } else {
+              await db.homework.add({
+                id: `hw-${id}`,
+                classId: targetClassId,
+                lessonId: id,
+                academicYearId: targetYearId,
+                assignedDate: newDate,
+                dueDate: updates.assignedHomeworkDueDate || newDate,
+                title: trimmedHwTitle,
+                instructions: updates.assignedHomeworkInstructions || '',
+                isCompleted: false,
+                createdAt: now,
+                updatedAt: now,
+              });
+            }
+          } else {
+            if (existingHw) {
+              await db.homework.delete(existingHw.id);
+            }
+          }
+        }
+
+        await db.lessons.update(id, {
+          ...updates,
+          updatedAt: now,
+        });
       }
-
-      await db.lessons.update(id, {
-        ...updates,
-        updatedAt: now,
-      });
-    });
+    );
   },
 
   async delete(id: string): Promise<void> {
-    // Atomic cascade: delete lesson and linked attendance records
-    await db.transaction('rw', [db.lessons, db.attendance, db.academicYears], async () => {
+    // Atomic cascade: delete lesson and linked attendance records and homework tasks
+    await db.transaction('rw', [db.lessons, db.attendance, db.homework, db.academicYears], async () => {
       const existing = await db.lessons.get(id);
       if (!existing) return;
 
@@ -321,6 +439,7 @@ export const lessonRepository = {
       }
 
       await db.attendance.where('lessonId').equals(id).delete();
+      await db.homework.where('lessonId').equals(id).delete();
       await db.lessons.delete(id);
     });
   },

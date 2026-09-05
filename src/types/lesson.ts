@@ -3,6 +3,8 @@
  * Lesson is the primary authoritative source of truth for pedagogical execution and attendance sessions.
  */
 
+export type InteractionPattern = 'Teacher-Pupil' | 'Pupil-Pupil' | 'Individual' | 'Group' | 'Plenary';
+
 export interface LessonActivityPlan {
   id: string;
   stepNumber: number;
@@ -10,7 +12,7 @@ export interface LessonActivityPlan {
   allocatedMinutes: number;
   teacherRoleAndInstructions: string;
   studentRoleAndTasks: string;
-  interactionPattern: 'Teacher-Pupil' | 'Pupil-Pupil' | 'Individual' | 'Group' | 'Plenary';
+  interactionPattern: InteractionPattern;
   materialsAndAids?: string;
 }
 
