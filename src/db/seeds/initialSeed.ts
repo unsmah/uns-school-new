@@ -15,6 +15,7 @@ import type {
   CompetencyDefinition,
   SessionRubricDefinition,
   CurriculumSequence,
+  LearningObjectiveDefinition,
   GradingScheme,
 } from '../../types';
 
@@ -32,6 +33,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
         db.competencies,
         db.sessionRubrics,
         db.curriculumSequences,
+        db.learningObjectives,
       ],
       async () => {
         const officialVersion: CurriculumVersion = {
@@ -221,7 +223,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           await db.sessionRubrics.add(rub);
         }
 
-        // Exemplary National Sequences for 1AM & 4AM
+        // Exemplary National Sequences for 1AM, 2AM, 3AM & 4AM
         const sequences: CurriculumSequence[] = [
           {
             id: 'seq-1am-1',
@@ -248,6 +250,54 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
             order: 2,
           },
           {
+            id: 'seq-2am-1',
+            curriculumVersionId: officialVersion.id,
+            levelCode: '2MS',
+            sequenceNumber: 1,
+            title: 'Sequence 1: Me, My Friends and My Family',
+            communicativeObjective: 'Describe personal appearance, personality traits, and daily routines.',
+            projectWorkTitle: 'My Digital Friendship Profile',
+            targetedCompetencyIds: ['comp-dz-c1', 'comp-dz-c2', 'comp-dz-c3'],
+            plannedSessionsCount: 12,
+            order: 1,
+          },
+          {
+            id: 'seq-2am-2',
+            curriculumVersionId: officialVersion.id,
+            levelCode: '2MS',
+            sequenceNumber: 2,
+            title: 'Sequence 2: Me and My Shopping',
+            communicativeObjective: 'Inquire about prices, quantities, sizes and express shopping preferences.',
+            projectWorkTitle: 'Classroom Flea Market Guide',
+            targetedCompetencyIds: ['comp-dz-c1', 'comp-dz-c2', 'comp-dz-c3'],
+            plannedSessionsCount: 12,
+            order: 2,
+          },
+          {
+            id: 'seq-3am-1',
+            curriculumVersionId: officialVersion.id,
+            levelCode: '3MS',
+            sequenceNumber: 1,
+            title: 'Sequence 1: Me, My Abilities and My Hobbies',
+            communicativeObjective: 'Express abilities, disabilities, interests and leisure time activities.',
+            projectWorkTitle: 'My Talent and Hobbies Showcase',
+            targetedCompetencyIds: ['comp-dz-c1', 'comp-dz-c2', 'comp-dz-c3'],
+            plannedSessionsCount: 12,
+            order: 1,
+          },
+          {
+            id: 'seq-3am-2',
+            curriculumVersionId: officialVersion.id,
+            levelCode: '3MS',
+            sequenceNumber: 2,
+            title: 'Sequence 2: Me and My Environment',
+            communicativeObjective: 'Describe local environmental issues, endangered species and conservation measures.',
+            projectWorkTitle: 'Green School Eco-Charter',
+            targetedCompetencyIds: ['comp-dz-c1', 'comp-dz-c2', 'comp-dz-c3'],
+            plannedSessionsCount: 12,
+            order: 2,
+          },
+          {
             id: 'seq-4am-1',
             curriculumVersionId: officialVersion.id,
             levelCode: '4MS',
@@ -259,9 +309,141 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
             plannedSessionsCount: 14,
             order: 1,
           },
+          {
+            id: 'seq-4am-2',
+            curriculumVersionId: officialVersion.id,
+            levelCode: '4MS',
+            sequenceNumber: 2,
+            title: 'Sequence 2: Me, My Personality and Life Experiences',
+            communicativeObjective: 'Narrate past childhood memories, significant role models and life choices.',
+            projectWorkTitle: 'My Class Yearbook & Dream Board',
+            targetedCompetencyIds: ['comp-dz-c1', 'comp-dz-c2', 'comp-dz-c3'],
+            plannedSessionsCount: 14,
+            order: 2,
+          },
         ];
         for (const seq of sequences) {
           await db.curriculumSequences.add(seq);
+        }
+
+        // Learning Objectives for Seeded Sequences
+        const objectives: LearningObjectiveDefinition[] = [
+          // 1AM Seq 1
+          {
+            id: 'obj-1am-1-1',
+            sequenceId: 'seq-1am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Communicative',
+            description: 'Greet formally and informally (Hello, Good morning, Hi).',
+            order: 1,
+          },
+          {
+            id: 'obj-1am-1-2',
+            sequenceId: 'seq-1am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Linguistic',
+            description: 'Use personal pronouns (I, you, he, she) and the auxiliary "to be" in simple present.',
+            order: 2,
+          },
+          {
+            id: 'obj-1am-1-3',
+            sequenceId: 'seq-1am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Methodological',
+            description: 'Fill in an individual ID card with name, age, city, and school.',
+            order: 3,
+          },
+          {
+            id: 'obj-1am-1-4',
+            sequenceId: 'seq-1am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Cultural',
+            description: 'Compare Algerian and English greeting conventions and politeness norms.',
+            order: 4,
+          },
+
+          // 1AM Seq 2
+          {
+            id: 'obj-1am-2-1',
+            sequenceId: 'seq-1am-2',
+            curriculumVersionId: officialVersion.id,
+            type: 'Communicative',
+            description: 'Introduce family members and describe their jobs/occupations.',
+            order: 1,
+          },
+          {
+            id: 'obj-1am-2-2',
+            sequenceId: 'seq-1am-2',
+            curriculumVersionId: officialVersion.id,
+            type: 'Linguistic',
+            description: 'Apply possessive adjectives (my, your, his, her) and the verb "have got".',
+            order: 2,
+          },
+
+          // 2AM Seq 1
+          {
+            id: 'obj-2am-1-1',
+            sequenceId: 'seq-2am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Communicative',
+            description: 'Describe physical appearance (hair, eyes, height) and clothing items.',
+            order: 1,
+          },
+          {
+            id: 'obj-2am-1-2',
+            sequenceId: 'seq-2am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Linguistic',
+            description: 'Use present simple with action verbs and adjectives in correct order.',
+            order: 2,
+          },
+
+          // 3AM Seq 1
+          {
+            id: 'obj-3am-1-1',
+            sequenceId: 'seq-3am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Communicative',
+            description: 'Express what one can or cannot do and express interests/likes.',
+            order: 1,
+          },
+          {
+            id: 'obj-3am-1-2',
+            sequenceId: 'seq-3am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Linguistic',
+            description: 'Master modal auxiliary "can / can\'t" and verbs of liking followed by gerund (-ing).',
+            order: 2,
+          },
+
+          // 4AM Seq 1
+          {
+            id: 'obj-4am-1-1',
+            sequenceId: 'seq-4am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Communicative',
+            description: 'Describe famous Algerian and world historical monuments and universal heritage sites.',
+            order: 1,
+          },
+          {
+            id: 'obj-4am-1-2',
+            sequenceId: 'seq-4am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Linguistic',
+            description: 'Use passive voice in the past simple (was/were + past participle) and comparative/superlative forms.',
+            order: 2,
+          },
+          {
+            id: 'obj-4am-1-3',
+            sequenceId: 'seq-4am-1',
+            curriculumVersionId: officialVersion.id,
+            type: 'Cultural',
+            description: 'Value and preserve Algerian cultural heritage (Tipaza, Casbah of Algiers, Tassili n\'Ajjer).',
+            order: 3,
+          },
+        ];
+        for (const obj of objectives) {
+          await db.learningObjectives.add(obj);
         }
       }
     );

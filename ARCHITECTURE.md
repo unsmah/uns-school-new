@@ -98,6 +98,19 @@ The application strictly enforces a unidirectional data-flow with clean separati
   - **Cahier Journal (دفتر اليومية)**: Dynamically calculated daily view aggregating lessons across all classes for a selected date in the active academic year with live attendance metrics.
   - **Cahier de Textes (دفتر النصوص)**: Dynamically calculated chronological log per class strictly scoped by `academicYearId + classId`.
   - Both views are pure derived digital browser projections without independent storage tables, preventing state synchronization drift.
+
+### 3.6. Planning, Progress & Curriculum Engine (Phase 5)
+- **Data-Driven Curriculum Store**:
+  - Official national curriculum definitions (`curriculumVersions`, `curriculumLevels`, `curriculumSequences`, `competencies`, `sessionRubrics`, `learningObjectives`) are stored in normalized IndexedDB tables.
+  - Completely decouple the software engine from curriculum versions, permitting seamless curriculum updates or multi-version historical coexistence without code changes.
+- **Derived Planning & Progress Engine**:
+  - Planning metrics (sequence progress %, planned vs. recorded vs. completed sessions, remaining sessions, first/last lesson dates) are **computed deterministically on-the-fly** from `Lesson` records.
+  - Zero duplicate planning/session entities: preventing state desynchronization.
+- **Classroom Pacing & Progress Analysis**:
+  - Calculates pacing status based on percentage completion against standard recommended schedule.
+  - Computes competency coverage matrices (C1, C2, C3) and specific learning objective alignment per class.
+- **Referential Integrity for Curriculum Deletion**:
+  - Sequences, session rubrics, and learning objectives enforce pre-deletion integrity checks: any entity referenced by one or more `Lesson` records cannot be deleted.
   - Printable outputs and official document export belong strictly to Phase 8.
 - **Historical Curriculum Version Preservation**:
   - Projections resolve pedagogical sequence titles, session rubric names, and competencies dynamically from each lesson's own `curriculumVersionId` rather than assuming only the active version.

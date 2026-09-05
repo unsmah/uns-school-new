@@ -1,6 +1,6 @@
 # UNS SCHOOL — Project State
 
-**Phase**: Phase 4 — Unified Lesson Workflow & Pedagogical Logs (Implementation Complete — External Audit Pending)  
+**Phase**: Phase 5 — Planning & Curriculum (Implementation & Verification Complete)  
 **Architecture**: 100% Client-Only SPA (React 19.0.1, Vite, TypeScript, Tailwind CSS, Dexie.js / IndexedDB)  
 **Target User**: Middle school English teachers in Algeria (1AM–4AM / 1MS–4MS)  
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
@@ -27,7 +27,7 @@
   - Attendance statistics are strictly scoped to `academicYearId + classId`, preventing cross-year aggregation errors.
   - **Atomic `markAllPresent()`**: Strict pre-validation pass verifying that all student enrollments exist, belong to the exact class and academic year of the lesson, and are active. Zero-tolerance policy: if any enrollment is invalid or if duplicate IDs are provided, the transaction throws an error and writes **zero** records.
 
-### 3. Unified Lesson Workflow & Pedagogical Logs (Phase 4 — Implementation Complete)
+### 3. Unified Lesson Workflow & Pedagogical Logs (Phase 4)
 - **Authoritative Lesson Master Entity**:
   - `Lesson` serves as the single source of truth for pedagogical planning, sequence progression, roll call, and homework tasks.
   - Full support for multi-step didactic activity plans (standard pedagogical phases, interaction patterns: T-S, S-S, Individual, Group, PW, GW).
@@ -48,19 +48,35 @@
   - Resolves curriculum sequences, session rubrics, and competencies using each lesson's own `curriculumVersionId`.
   - Changing the active curriculum version preserves all historical metadata across past academic years and lessons intact.
 
+### 4. Planning & Curriculum Engine (Phase 5 — Complete)
+- **Curriculum as Versioned Data**:
+  - Complete, extensible curriculum storage (`curriculumVersions`, `curriculumLevels`, `curriculumSequences`, `competencies`, `sessionRubrics`, `learningObjectives`) covering 1AM to 4AM with communicative objectives and project titles.
+  - Support for active and historical curriculum versions.
+- **Pure Derived Planning & Progress Engine**:
+  - Deterministic calculations (`computeSequenceProgress`, `computeClassPlanningOverview`, `computeCompetencyCoverage`, `computeObjectiveCoverage`) dynamically derived from authoritative `Lesson` records without duplicate state.
+  - Real-time pacing metrics: planned vs. recorded vs. completed sessions, remaining sessions count, and completion percentage.
+  - Pacing indicators: On Track, Falling Behind, Ahead of Schedule.
+- **Interactive Curriculum Explorer**:
+  - Level-by-level inspection of sequences, official exit profiles, recommended weekly hours, targeted competencies, and granular learning objectives (communicative, linguistic, pronunciation).
+- **Yearly & Sequence Planning Cockpit**:
+  - Class-by-class sequence roadmap, timeline overview, competency coverage matrices (C1, C2, C3), and direct action links to launch lessons aligned with specific sequences.
+- **Referential Integrity on Curriculum Entities**:
+  - Transactional guards prevent deleting sequences, rubrics, or objectives that are referenced by existing `Lesson` records.
+
 ---
 
 ## Current System Invariants
 
 1. **Lesson as Single Authoritative Source**:
-   - `Lesson` is the sole source of truth; Cahier Journal and Cahier de Textes are strictly derived read-only projections.
+   - `Lesson` is the sole source of truth; Cahier Journal, Cahier de Textes, and Sequence Planning progress are strictly derived read-only projections.
    - `HomeworkTask` records linked to lessons are synchronized atomically in the same database transaction.
 
-2. **Cahier de Textes Scoping**:
-   - Queries require both `classId` and `academicYearId`. Classes from different academic years never blend logs.
+2. **Cahier de Textes & Planning Scoping**:
+   - Queries require both `classId` and `academicYearId`. Classes from different academic years never blend logs or progress calculations.
 
 3. **Curriculum Version Integrity**:
    - Lessons reference specific `curriculumVersionId`. Historical lessons retain their original sequence and rubric definitions regardless of active curriculum updates.
+   - Sequence/Rubric deletion is rejected if referenced by existing lessons.
 
 4. **Timetable Conflict Uniqueness**:
    - `academicYearId + classId + dayOfWeek + periodNumber` defines unique slot occupancy.
@@ -74,4 +90,5 @@
 
 7. **Two-Tier Student Identity & Enrollment**:
    - Active enrollment is strictly unique per student per academic year. Register numbers are unique per class roster.
+
 

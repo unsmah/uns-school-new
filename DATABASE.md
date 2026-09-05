@@ -81,3 +81,11 @@ Because IndexedDB does not have built-in foreign key constraints, all integrity 
 10. **Single Current Academic Year**:
    - Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false` for that school.
    - `AcademicYear.schoolId` is immutable. Archived academic years are strictly read-only.
+
+11. **Curriculum Entity Deletion Guards**:
+   - A `curriculumSequence` cannot be deleted if any `Lesson` record references its `sequenceId`.
+   - A `sessionRubric` cannot be deleted if any `Lesson` record references its `rubricId`.
+   - A `learningObjective` cannot be deleted if any `Lesson` records are linked to its parent sequence.
+
+12. **Pure Derived Planning Layer**:
+   - Sequence progress, completion percentages, competency coverage counts, and pacing metrics are dynamically derived at query time from `lessons` records. No intermediate planning snapshot tables exist.

@@ -43,7 +43,22 @@ A specialized, client-only, offline-first digital workspace tailored for Algeria
   - Chronological projection of sessions taught, sequence themes, pedagogical stages, specific learning objectives, and assigned homework.
   - Historical curriculum version preservation: resolves sequences, rubrics, and competencies from each lesson's recorded `curriculumVersionId`.
 
-### 5. Local Storage, Offline Reliability & PWA (Phase 1 Completed)
+### 5. Planning & Curriculum Engine (Phase 5 Implemented)
+- **Interactive Curriculum Explorer**:
+  - Browse versioned national curricula (e.g. 2nd Generation 2016 Reform).
+  - Inspect grade levels (1AM, 2AM, 3AM, 4AM), recommended weekly hours, exit profile definitions, competencies (C1, C2, C3), session rubrics, and detailed learning objectives.
+- **Yearly & Sequence Planning Cockpit**:
+  - Class-by-class progression view calculating planned vs. recorded vs. completed sessions in real time.
+  - Pacing indicators (On Track, Falling Behind, Ahead of Schedule) based on sequence targets.
+  - Interactive sequence cards showing communicational objectives, project titles, targeted competencies, and direct action to schedule aligned lessons.
+- **Competency & Objective Alignment Tracker**:
+  - Live matrix showing frequency and chronological dates of targeted core competencies (Oral Interaction, Text Interpretation, Written Production).
+  - Granular learning objective coverage matching against recorded lesson plans.
+- **Pure Derived Architecture & Historical Preservation**:
+  - 100% calculated from authoritative `Lesson` records without redundant planning tables.
+  - Historical lessons retain their exact curriculum version and sequences without being altered by active version changes.
+
+### 6. Local Storage, Offline Reliability & PWA (Phase 1 Completed)
 - **100% Client-Only PWA**: Standalone installable PWA with full offline capabilities via service worker caching.
 - **Storage Diagnostics & Telemetry**: StorageManager API quota checks, persistence grant classification, and disaster recovery backup reminders.
 
@@ -51,11 +66,14 @@ A specialized, client-only, offline-first digital workspace tailored for Algeria
 
 ## Planned Future Phases (Not Yet Implemented)
 
-### Phase 5 — Continuous Assessment & Grading Engine (Future)
+### Phase 6 — Continuous Assessment & Grading Engine (Future)
 - Trimester grading workflow (Continuous Assessment, Term Test, Composition Exam).
 - Declarative weighted arithmetic calculations without dynamic code evaluation.
 - Official bulletin and gradebook exports.
 
-### Phase 6 — Offline Resources & Pedagogical Deliverables (Future)
-- Pedagogical material repository, resource tagging, and document exports.
+### Phase 7 — Offline Resources & Pedagogical Deliverables (Future)
+- Pedagogical material repository, resource tagging, and document management.
+
+### Phase 8 — Official Reports & Printing (Future)
+- Print-optimized templates and official document export.
 

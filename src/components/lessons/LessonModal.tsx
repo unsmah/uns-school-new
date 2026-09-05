@@ -44,6 +44,7 @@ interface LessonModalProps {
   classes: SchoolClass[];
   existingLesson?: Lesson | null;
   defaultClassId?: string;
+  defaultSequenceId?: string;
   defaultDate?: string;
   onSaved: (lesson: Lesson) => void;
 }
@@ -65,6 +66,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   classes,
   existingLesson,
   defaultClassId,
+  defaultSequenceId,
   defaultDate,
   onSaved,
 }) => {
@@ -122,13 +124,17 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     async function loadCurriculumData() {
       setIsLoadingCurriculum(true);
       try {
-        const [activeCurr, resources] = await Promise.all([
-          curriculumRepository.getActiveVersion(),
-          resourceRepository.listAll(),
-        ]);
-        if (activeCurr) {
-          setCurriculumVersion(activeCurr);
-          const allRubrics = await curriculumRepository.listRubrics(activeCurr.id);
+        let curr: CurriculumVersion | undefined;
+        if (existingLesson?.curriculumVersionId) {
+          curr = await curriculumRepository.getVersionById(existingLesson.curriculumVersionId);
+        }
+        if (!curr) {
+          curr = await curriculumRepository.getActiveVersion();
+        }
+        const resources = await resourceRepository.listAll();
+        if (curr) {
+          setCurriculumVersion(curr);
+          const allRubrics = await curriculumRepository.listRubrics(curr.id);
           setRubrics(allRubrics);
         }
         setAvailableResources(resources);
@@ -139,7 +145,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       }
     }
     loadCurriculumData();
-  }, []);
+  }, [existingLesson]);
 
   // Update sequences & competencies whenever class changes
   useEffect(() => {
@@ -157,14 +163,17 @@ export const LessonModal: React.FC<LessonModalProps> = ({
         setAvailableCompetencies(comps);
 
         if (seqs.length > 0 && !sequenceId) {
-          setSequenceId(seqs[0].id);
+          const matchedDefault = defaultSequenceId && seqs.some((s) => s.id === defaultSequenceId)
+            ? defaultSequenceId
+            : seqs[0].id;
+          setSequenceId(matchedDefault);
         }
       } catch (err) {
         console.error('Failed to load sequences/competencies for class:', err);
       }
     }
     loadClassCurriculumData();
-  }, [curriculumVersion, classId, classes]);
+  }, [curriculumVersion, classId, classes, defaultSequenceId]);
 
   // Update sequence objectives when sequenceId changes
   useEffect(() => {
@@ -206,6 +215,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     } else {
       const initialClassId = defaultClassId || classes[0]?.id || '';
       setClassId(initialClassId);
+      setSequenceId(defaultSequenceId || '');
       setDate(defaultDate || new Date().toISOString().slice(0, 10));
       setStartTime('08:00');
       setEndTime('09:00');
@@ -223,7 +233,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
     }
     setActiveTab('core');
     setError(null);
-  }, [existingLesson, defaultClassId, defaultDate, classes, isOpen]);
+  }, [existingLesson, defaultClassId, defaultSequenceId, defaultDate, classes, isOpen]);
 
   // Set default rubric if empty
   useEffect(() => {
