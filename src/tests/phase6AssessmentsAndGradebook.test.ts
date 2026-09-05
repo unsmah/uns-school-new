@@ -12,6 +12,7 @@ import { studentPersonRepository } from '../db/repositories/studentPersonReposit
 import { studentEnrollmentRepository } from '../db/repositories/studentEnrollmentRepository';
 import { assessmentRepository } from '../db/repositories/assessmentRepository';
 import { gradeRepository } from '../db/repositories/gradeRepository';
+import { gradingCalculationService } from '../services/gradingCalculationService';
 import type { GradingScheme, Assessment, GradeEntry } from '../types';
 
 describe('Phase 6 — Assessments, Gradebook & Deterministic Grading', () => {
@@ -414,6 +415,89 @@ describe('Phase 6 — Assessments, Gradebook & Deterministic Grading', () => {
       await gradeRepository.clearGradeForStudent(assessmentId, studentEnrollment1);
       grade = await gradeRepository.getGrade(assessmentId, studentEnrollment1);
       expect(grade).toBeUndefined();
+    });
+
+    it('rejects assessment creation with an invalid componentKey not present in grading scheme', async () => {
+      const invalidAssessment: Assessment = {
+        id: 'ass-invalid-comp',
+        academicYearId: activeYearId,
+        classId: activeClassId,
+        gradingSchemeId: sampleScheme.id,
+        componentKey: 'non_existent_component_key',
+        termNumber: 1,
+        title: 'Invalid Component Test',
+        date: '2026-10-15',
+        maxScore: 20,
+        coefficient: 1,
+        isLocked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(assessmentRepository.create(invalidAssessment)).rejects.toThrow(
+        /does not exist in the selected grading scheme/
+      );
+    });
+
+    it('mandatorily preserves historical grading calculation using Assessment.componentSnapshot when scheme changes to configuration B', async () => {
+      // 1. Create assessment with configuration A (term_test coefficient = 1)
+      const assessmentId = 'ass-snapshot-regress';
+      await assessmentRepository.create({
+        id: assessmentId,
+        academicYearId: activeYearId,
+        classId: activeClassId,
+        gradingSchemeId: sampleScheme.id,
+        componentKey: 'term_test',
+        termNumber: 1,
+        title: 'Devoir Snapshot Test',
+        date: '2026-10-15',
+        maxScore: 20,
+        coefficient: 1,
+        isLocked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Record a grade for student 1
+      await gradeRepository.recordGrade({
+        id: 'g-regress-1',
+        assessmentId,
+        studentEnrollmentId: studentEnrollment1,
+        score: 16,
+        isAbsent: false,
+        isMedicalExemption: false,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // 2. Calculate result under initial scheme configuration A
+      const resultA = gradingCalculationService.calculateStudentTermGrade(
+        studentEnrollment1,
+        sampleScheme,
+        await assessmentRepository.listByClass(activeClassId),
+        await db.grades.toArray()
+      );
+      const initialWeightedAverage = resultA.weightedAverage;
+      expect(initialWeightedAverage).not.toBeNull();
+
+      // 3. Change current grading scheme to configuration B (e.g., change term_test coefficient from 1 to 5)
+      const modifiedScheme: GradingScheme = {
+        ...sampleScheme,
+        components: sampleScheme.components.map((c) =>
+          c.componentKey === 'term_test' ? { ...c, coefficient: 5 } : c
+        ),
+      };
+      await db.gradingSchemes.put(modifiedScheme);
+
+      // 4. Recalculate OLD assessment using the updated grading scheme
+      const resultB = gradingCalculationService.calculateStudentTermGrade(
+        studentEnrollment1,
+        modifiedScheme,
+        await assessmentRepository.listByClass(activeClassId),
+        await db.grades.toArray()
+      );
+
+      // 5. Assert the result is unchanged because historical calculation uses Assessment.componentSnapshot (coefficient = 1)
+      expect(resultB.weightedAverage).toBe(initialWeightedAverage);
     });
   });
 });

@@ -80,9 +80,14 @@ export const assessmentRepository = {
           );
         }
 
-        // Validate or extract component snapshot for historical reproducibility
+        // Validate componentKey exists in grading scheme
         const matchingComponent = scheme.components.find((c) => c.componentKey === assessment.componentKey);
-        const componentSnapshot = assessment.componentSnapshot || matchingComponent;
+        if (!matchingComponent) {
+          throw new Error(
+            `Component key '${assessment.componentKey}' does not exist in the selected grading scheme (${scheme.id}).`
+          );
+        }
+        const componentSnapshot = assessment.componentSnapshot || { ...matchingComponent };
 
         // If curriculum sequence is specified, verify it exists and matches class level
         if (assessment.curriculumSequenceId) {

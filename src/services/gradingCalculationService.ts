@@ -57,12 +57,40 @@ export const gradingCalculationService = {
     let totalCoefficients = 0;
     let hasMissingMandatory = false;
 
-    for (const component of scheme.components) {
+    // Build effective component configurations map:
+    // Prefer Assessment.componentSnapshot (frozen at creation), fall back to scheme.components
+    const componentConfigsMap = new Map<
+      string,
+      { maxScore: number; coefficient: number; isMandatory: boolean; label: string }
+    >();
+
+    for (const comp of scheme.components) {
+      componentConfigsMap.set(comp.componentKey, {
+        maxScore: comp.maxScore,
+        coefficient: comp.coefficient,
+        isMandatory: comp.isMandatory,
+        label: comp.label,
+      });
+    }
+
+    // Override or add from assessment snapshots if present (historical integrity)
+    for (const assessment of assessments) {
+      if (assessment.componentSnapshot) {
+        componentConfigsMap.set(assessment.componentKey, {
+          maxScore: assessment.componentSnapshot.maxScore,
+          coefficient: assessment.componentSnapshot.coefficient,
+          isMandatory: assessment.componentSnapshot.isMandatory,
+          label: assessment.componentSnapshot.label,
+        });
+      }
+    }
+
+    for (const [componentKey, config] of componentConfigsMap.entries()) {
       // Find assessments matching this componentKey
-      const matchingAssessments = assessments.filter((a) => a.componentKey === component.componentKey);
+      const matchingAssessments = assessments.filter((a) => a.componentKey === componentKey);
 
       if (matchingAssessments.length === 0) {
-        if (component.isMandatory) {
+        if (config.isMandatory) {
           hasMissingMandatory = true;
         }
         continue;
@@ -81,7 +109,7 @@ export const gradingCalculationService = {
         );
 
         if (!grade) {
-          if (component.isMandatory) hasMissingMandatory = true;
+          if (config.isMandatory) hasMissingMandatory = true;
           continue;
         }
 
@@ -101,28 +129,34 @@ export const gradingCalculationService = {
         }
 
         if (grade.score !== null && grade.score !== undefined) {
-          // Normalize score to component maxScore scale if assessment has different max
-          const normalizedScore = (grade.score / assessment.maxScore) * component.maxScore;
+          // Normalize score to component maxScore scale using assessment snapshot maxScore (or fallback config)
+          const targetMax = assessment.componentSnapshot?.maxScore ?? config.maxScore;
+          const normalizedScore = (grade.score / assessment.maxScore) * targetMax;
           componentScoreSum += normalizedScore;
           validAssessmentCount++;
-        } else if (component.isMandatory) {
+        } else if (config.isMandatory) {
           hasMissingMandatory = true;
         }
       }
 
       const finalComponentScore = validAssessmentCount > 0 ? parseFloat((componentScoreSum / validAssessmentCount).toFixed(2)) : null;
 
-      componentScores[component.componentKey] = {
+      // Use frozen snapshot configuration for coefficient and maxScore
+      const effectiveSnapshot = matchingAssessments[0]?.componentSnapshot;
+      const effectiveMaxScore = effectiveSnapshot?.maxScore ?? config.maxScore;
+      const effectiveCoefficient = effectiveSnapshot?.coefficient ?? config.coefficient;
+
+      componentScores[componentKey] = {
         score: finalComponentScore,
-        maxScore: component.maxScore,
-        coefficient: component.coefficient,
+        maxScore: effectiveMaxScore,
+        coefficient: effectiveCoefficient,
         isAbsent,
         isMedicalExemption,
       };
 
       if (finalComponentScore !== null && !isMedicalExemption) {
-        weightedSum += (finalComponentScore / component.maxScore) * scheme.maxOverallScore * component.coefficient;
-        totalCoefficients += component.coefficient;
+        weightedSum += (finalComponentScore / effectiveMaxScore) * scheme.maxOverallScore * effectiveCoefficient;
+        totalCoefficients += effectiveCoefficient;
       }
     }
 

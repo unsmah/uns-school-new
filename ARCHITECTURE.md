@@ -115,6 +115,17 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - **Historical Curriculum Version Preservation**:
   - Projections resolve pedagogical sequence titles, session rubric names, and competencies dynamically from each lesson's own `curriculumVersionId` rather than assuming only the active version.
 
+### 3.7. Assessments & Gradebook (Phase 6)
+- **Component Validation & Frozen Snapshot**:
+  - When creating an assessment, `assessmentRepository` strictly validates that `assessment.componentKey` exists within the selected `GradingScheme.components`. If invalid, creation is rejected.
+  - A frozen copy of the component configuration (`Assessment.componentSnapshot`) is stored directly on the assessment record at creation time.
+- **Historical Grading Calculation Invariance**:
+  - `gradingCalculationService.calculateStudentTermGrade` prioritizes `Assessment.componentSnapshot` (falling back to scheme components only for legacy records without snapshots).
+  - Subsequent modifications to the mutable `GradingScheme` (Configuration A -> Configuration B) do not affect historical calculations of past assessments.
+- **Coefficient & Score Semantics**:
+  - Component coefficients (`GradingComponentConfig.coefficient` / `componentSnapshot.coefficient`) act as authoritative weighting factors in trimester calculations.
+  - Grades with unexcused absences are treated as 0 in official scoring; medical exemptions are excluded from weighted averages. Bounds checking ($0$ to `maxScore`) is enforced atomically.
+
 ---
 
 ## 4. Storage Telemetry & Disaster Recovery
