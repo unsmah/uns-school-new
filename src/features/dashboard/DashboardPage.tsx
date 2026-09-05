@@ -1,6 +1,6 @@
 /**
  * UNS SCHOOL — Dashboard
- * Overview of the digital teacher's desk with active academic year metrics.
+ * Overview of the digital teacher's desk with active academic year metrics and operational shortcuts.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -25,18 +25,29 @@ import {
   ArrowRight,
   School as SchoolIcon,
   CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import { Card, Badge, Button } from '../../components/ui';
 import { useAcademicYear } from '../../context/AcademicYearContext';
-import { classRepository, studentEnrollmentRepository, studentPersonRepository } from '../../db/repositories';
+import {
+  classRepository,
+  studentEnrollmentRepository,
+  studentPersonRepository,
+  timetableRepository,
+  lessonRepository,
+  attendanceRepository,
+} from '../../db/repositories';
 import { checkStorageTelemetry, type StorageTelemetry } from '../../services/storageTelemetryService';
+import type { TimetableSlot, Lesson } from '../../types';
 
 export const DashboardPage: React.FC = () => {
-  const { school, selectedAcademicYear, isArchived, isHistorical } = useAcademicYear();
+  const { school, selectedAcademicYear, isArchived } = useAcademicYear();
   const [telemetry, setTelemetry] = useState<StorageTelemetry | null>(null);
   const [classCount, setClassCount] = useState<number>(0);
   const [enrolledCount, setEnrolledCount] = useState<number>(0);
   const [totalStudentsCount, setTotalStudentsCount] = useState<number>(0);
+  const [timetableSlotsCount, setTimetableSlotsCount] = useState<number>(0);
+  const [lessonsCount, setLessonsCount] = useState<number>(0);
 
   useEffect(() => {
     checkStorageTelemetry().then(setTelemetry);
@@ -46,14 +57,18 @@ export const DashboardPage: React.FC = () => {
     async function loadYearStats() {
       if (!selectedAcademicYear) return;
       try {
-        const [yearClasses, yearEnrollments, allPersons] = await Promise.all([
+        const [yearClasses, yearEnrollments, allPersons, yearSlots, yearLessons] = await Promise.all([
           classRepository.listByAcademicYear(selectedAcademicYear.id),
           studentEnrollmentRepository.listByAcademicYear(selectedAcademicYear.id),
           studentPersonRepository.listAll(),
+          timetableRepository.listByAcademicYear(selectedAcademicYear.id),
+          lessonRepository.listByAcademicYear(selectedAcademicYear.id),
         ]);
         setClassCount(yearClasses.length);
         setEnrolledCount(yearEnrollments.filter((e) => e.status === 'active').length);
         setTotalStudentsCount(allPersons.length);
+        setTimetableSlotsCount(yearSlots.length);
+        setLessonsCount(yearLessons.length);
       } catch (err) {
         console.error('Failed to load dashboard metrics:', err);
       }
@@ -62,12 +77,13 @@ export const DashboardPage: React.FC = () => {
   }, [selectedAcademicYear]);
 
   const coreModules = [
-    { to: '/classes', title: 'Classes', icon: Users, desc: 'School classes & level divisions', status: 'Phase 2 Live', highlight: true },
-    { to: '/students', title: 'Students', icon: GraduationCap, desc: 'StudentPerson & multi-year history', status: 'Phase 2 Live', highlight: true },
-    { to: '/academic-years', title: 'Academic Years', icon: Calendar, desc: 'School profile & year lifecycle', status: 'Phase 2 Live', highlight: true },
-    { to: '/lessons', title: 'Lessons', icon: BookOpen, desc: 'Authoritative pedagogical session records', status: 'Foundation' },
-    { to: '/attendance', title: 'Attendance', icon: UserCheck, desc: 'Lesson-anchored roll call register', status: 'Foundation' },
-    { to: '/cahier-journal', title: 'Cahier Journal', icon: ClipboardList, desc: 'Derived daily inspection logbook', status: 'Foundation' },
+    { to: '/timetable', title: 'Timetable', icon: CalendarDays, desc: 'Weekly schedule & period management (Sun-Thu)', status: 'Phase 3 Live', highlight: true },
+    { to: '/lessons', title: 'Lessons & Sessions', icon: BookOpen, desc: 'Pedagogical sessions & Cahier Journal inspection view', status: 'Phase 3 Live', highlight: true },
+    { to: '/attendance', title: 'Attendance Register', icon: UserCheck, desc: 'Lesson-anchored roll call & class statistics', status: 'Phase 3 Live', highlight: true },
+    { to: '/classes', title: 'Classes & Workspaces', icon: Users, desc: 'School classes, level divisions & class workspaces', status: 'Phase 3 Live', highlight: true },
+    { to: '/students', title: 'Students', icon: GraduationCap, desc: 'StudentPerson & multi-year historical context', status: 'Phase 2 Live', highlight: true },
+    { to: '/academic-years', title: 'Academic Years', icon: Calendar, desc: 'School profile & academic year lifecycle', status: 'Phase 2 Live', highlight: true },
+    { to: '/cahier-journal', title: 'Cahier Journal', icon: ClipboardList, desc: 'Derived daily inspection logbook', status: 'Phase 3 Live', highlight: true },
     { to: '/cahier-textes', title: 'Cahier de Textes', icon: FileText, desc: 'Derived chronological class register', status: 'Foundation' },
     { to: '/planning', title: 'Planning', icon: CalendarDays, desc: 'Yearly progression & sequence tracker', status: 'Foundation' },
     { to: '/curriculum', title: 'Curriculum', icon: Layers, desc: 'Data-driven versioned Algerian syllabus', status: 'Foundation' },
@@ -90,7 +106,7 @@ export const DashboardPage: React.FC = () => {
                 Digital Teacher&apos;s Desk
               </span>
               <span className="px-2 py-0.5 rounded-full bg-white/20 text-[11px] font-medium">
-                Phase 2 Active
+                Phase 3 Classroom Operations Live
               </span>
               {isArchived && (
                 <span className="px-2 py-0.5 rounded-full bg-amber-500/80 text-[11px] font-semibold">
@@ -113,10 +129,10 @@ export const DashboardPage: React.FC = () => {
 
           <div className="shrink-0 flex items-center gap-2">
             <Link
-              to="/classes"
+              to="/timetable"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-emerald-900 text-xs font-semibold hover:bg-emerald-50 transition-colors shadow-xs"
             >
-              <span>Manage Classes</span>
+              <span>Weekly Timetable</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -124,17 +140,17 @@ export const DashboardPage: React.FC = () => {
       </div>
 
       {/* Quick Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center shrink-0">
               <Users className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Active Classes</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Classes</p>
               <h3 className="text-xl font-bold text-slate-900 dark:text-white">{classCount}</h3>
               <p className="text-[11px] text-emerald-700 dark:text-emerald-400 font-medium mt-0.5">
-                In {selectedAcademicYear?.label || 'active year'}
+                {enrolledCount} active students
               </p>
             </div>
           </div>
@@ -143,13 +159,13 @@ export const DashboardPage: React.FC = () => {
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 flex items-center justify-center shrink-0">
-              <GraduationCap className="w-5 h-5" />
+              <CalendarDays className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Enrolled Students</p>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{enrolledCount}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Weekly Slots</p>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{timetableSlotsCount} hrs</h3>
               <p className="text-[11px] text-teal-700 dark:text-teal-400 font-medium mt-0.5">
-                Active in current year
+                Sun–Thu schedule
               </p>
             </div>
           </div>
@@ -158,13 +174,13 @@ export const DashboardPage: React.FC = () => {
         <Card>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 flex items-center justify-center shrink-0">
-              <SchoolIcon className="w-5 h-5" />
+              <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Student Registry</p>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{totalStudentsCount}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Sessions Logged</p>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">{lessonsCount}</h3>
               <p className="text-[11px] text-blue-700 dark:text-blue-400 font-medium mt-0.5">
-                Total persistent identities
+                Cahier journal records
               </p>
             </div>
           </div>
@@ -194,7 +210,7 @@ export const DashboardPage: React.FC = () => {
           <h3 className="text-sm font-bold text-slate-900 dark:text-white">
             Workspace Modules
           </h3>
-          <Badge variant="default">Phase 2 Administrative Core Live</Badge>
+          <Badge variant="default">Phase 3 Live</Badge>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">

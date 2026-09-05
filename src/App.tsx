@@ -19,6 +19,7 @@ import { DashboardPage } from './features/dashboard/DashboardPage';
 import { AcademicYearsPage } from './features/academic-years/AcademicYearsPage';
 import { ClassesPage } from './features/classes/ClassesPage';
 import { StudentsPage } from './features/students/StudentsPage';
+import { TimetablePage } from './features/timetable/TimetablePage';
 import { PlanningPage } from './features/planning/PlanningPage';
 import { LessonsPage } from './features/lessons/LessonsPage';
 import { CahierJournalPage } from './features/cahier-journal/CahierJournalPage';
@@ -52,7 +53,9 @@ export function App() {
                   <Route path="dashboard" element={<DashboardPage />} />
                   <Route path="academic-years" element={<AcademicYearsPage />} />
                   <Route path="classes" element={<ClassesPage />} />
+                  <Route path="classes/:classId" element={<ClassesPage />} />
                   <Route path="students" element={<StudentsPage />} />
+                  <Route path="timetable" element={<TimetablePage />} />
                   <Route path="planning" element={<PlanningPage />} />
                   <Route path="lessons" element={<LessonsPage />} />
                   <Route path="cahier-journal" element={<CahierJournalPage />} />

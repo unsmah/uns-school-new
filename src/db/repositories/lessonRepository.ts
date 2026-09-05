@@ -1,6 +1,8 @@
 /**
  * UNS SCHOOL — Lesson Repository
  * Primary authoritative source of truth for pedagogical execution and attendance anchoring.
+ * Enforces school-academic year consistency, non-archived checks,
+ * class-level alignment, atomic date synchronization, and cascade deletion.
  */
 
 import { db } from '../database';
@@ -15,8 +17,24 @@ export const lessonRepository = {
     return await db.lessons.where('classId').equals(classId).sortBy('date');
   },
 
+  async listByClassAndAcademicYear(classId: string, academicYearId: string): Promise<Lesson[]> {
+    return await db.lessons
+      .where('classId')
+      .equals(classId)
+      .and((l) => l.academicYearId === academicYearId)
+      .sortBy('date');
+  },
+
   async listByDate(date: string): Promise<Lesson[]> {
     return await db.lessons.where('date').equals(date).sortBy('startTime');
+  },
+
+  async listByDateAndAcademicYear(date: string, academicYearId: string): Promise<Lesson[]> {
+    return await db.lessons
+      .where('date')
+      .equals(date)
+      .and((l) => l.academicYearId === academicYearId)
+      .sortBy('startTime');
   },
 
   async listByAcademicYear(academicYearId: string): Promise<Lesson[]> {
@@ -25,7 +43,13 @@ export const lessonRepository = {
 
   async create(lesson: Lesson): Promise<string> {
     const now = new Date().toISOString();
+
+    if (lesson.startTime && lesson.endTime && lesson.startTime >= lesson.endTime) {
+      throw new Error(`Invalid lesson time range: start time (${lesson.startTime}) must precede end time (${lesson.endTime}).`);
+    }
+
     return await db.transaction('rw', [db.lessons, db.academicYears, db.classes, db.curriculumVersions, db.curriculumLevels], async () => {
+      // 1. Academic year validation
       const year = await db.academicYears.get(lesson.academicYearId);
       if (!year) {
         throw new Error(`Academic year with id ${lesson.academicYearId} does not exist.`);
@@ -34,20 +58,25 @@ export const lessonRepository = {
         throw new Error('Cannot add lessons to an archived academic year.');
       }
 
+      // 2. Class validation
       const schoolClass = await db.classes.get(lesson.classId);
       if (!schoolClass) {
         throw new Error(`Class with id ${lesson.classId} does not exist.`);
       }
-
+      if (schoolClass.isArchived) {
+        throw new Error('Cannot add lessons to an archived class.');
+      }
       if (schoolClass.academicYearId !== lesson.academicYearId) {
         throw new Error(`Class ${lesson.classId} does not belong to academic year ${lesson.academicYearId}.`);
       }
 
+      // 3. Curriculum version validation
       const curriculum = await db.curriculumVersions.get(lesson.curriculumVersionId);
       if (!curriculum) {
         throw new Error(`Curriculum version with id ${lesson.curriculumVersionId} does not exist.`);
       }
 
+      // 4. Level validation
       if (lesson.levelCode && schoolClass.levelCode && lesson.levelCode !== schoolClass.levelCode) {
         throw new Error(`Lesson level ${lesson.levelCode} does not match class level ${schoolClass.levelCode}.`);
       }
@@ -78,6 +107,11 @@ export const lessonRepository = {
 
   async update(id: string, updates: Partial<Lesson>): Promise<void> {
     const now = new Date().toISOString();
+
+    if (updates.startTime && updates.endTime && updates.startTime >= updates.endTime) {
+      throw new Error(`Invalid lesson time range: start time (${updates.startTime}) must precede end time (${updates.endTime}).`);
+    }
+
     await db.transaction('rw', [db.lessons, db.attendance, db.academicYears, db.classes, db.curriculumVersions, db.curriculumLevels], async () => {
       const existing = await db.lessons.get(id);
       if (!existing) {
@@ -87,6 +121,9 @@ export const lessonRepository = {
       const existingYear = await db.academicYears.get(existing.academicYearId);
       if (existingYear?.isArchived) {
         throw new Error('Cannot modify lessons in an archived academic year.');
+      }
+      if (existing.isArchived) {
+        throw new Error('Cannot modify an archived lesson.');
       }
 
       const isChangingClass = updates.classId !== undefined && updates.classId !== existing.classId;
@@ -123,6 +160,9 @@ export const lessonRepository = {
         if (!targetClass) {
           throw new Error(`Class with id ${targetClassId} does not exist.`);
         }
+        if (targetClass.isArchived) {
+          throw new Error('Cannot move lessons to an archived class.');
+        }
 
         if (targetClass.academicYearId !== targetYearId) {
           throw new Error(`Class ${targetClassId} does not belong to academic year ${targetYearId}.`);
@@ -152,7 +192,7 @@ export const lessonRepository = {
         }
       }
 
-      // If lesson date was updated, synchronize all anchored attendance records
+      // If lesson date was updated, synchronize all anchored attendance records atomically
       if (updates.date && updates.date !== existing.date) {
         const linkedAttendance = await db.attendance.where('lessonId').equals(id).toArray();
         for (const record of linkedAttendance) {
@@ -185,5 +225,9 @@ export const lessonRepository = {
 
   async countByAcademicYear(academicYearId: string): Promise<number> {
     return await db.lessons.where('academicYearId').equals(academicYearId).count();
+  },
+
+  async countByClass(classId: string): Promise<number> {
+    return await db.lessons.where('classId').equals(classId).count();
   },
 };

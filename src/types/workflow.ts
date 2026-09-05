@@ -57,6 +57,8 @@ export interface TimetableSlot {
   endTime: string;   // "09:00"
   classId: string;
   roomNumber?: string;
+  subject?: string;
+  notes?: string;
 }
 
 export interface LocalResource {

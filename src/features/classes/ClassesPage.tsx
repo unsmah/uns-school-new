@@ -1,9 +1,11 @@
 /**
  * UNS SCHOOL — Classes Management Page
  * Organizes Algerian middle school classes (1MS, 2MS, 3MS, 4MS) scoped to the active academic year.
+ * Offers rich Classroom Workspace (Overview, Roster, Timetable, Lessons, Attendance).
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   GraduationCap,
   Plus,
@@ -15,12 +17,15 @@ import {
   Archive,
   ArrowRight,
   FileSpreadsheet,
+  BookOpen,
+  CalendarDays,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { classRepository, studentEnrollmentRepository } from '../../db/repositories';
 import { Card, Button, Badge, Alert, LoadingState, EmptyState } from '../../components/ui';
 import { ClassModal } from '../../components/classes/ClassModal';
 import { ClassRosterView } from './ClassRosterView';
+import { ClassWorkspaceView } from '../../components/classes/ClassWorkspaceView';
 import { StudentCsvImportModal } from '../../components/import/StudentCsvImportModal';
 import type { SchoolClass } from '../../types';
 
@@ -37,12 +42,15 @@ const LEVEL_TABS = [
 ];
 
 export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentProfile }) => {
-  const { school, selectedAcademicYear, isArchived, isHistorical } = useAcademicYear();
+  const { classId: routeClassId } = useParams<{ classId?: string }>();
+  const navigate = useNavigate();
+
+  const { school, selectedAcademicYear, isArchived } = useAcademicYear();
 
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [classStudentCounts, setClassStudentCounts] = useState<Record<string, number>>({});
   const [activeLevelTab, setActiveLevelTab] = useState('ALL');
-  const [selectedClassForRoster, setSelectedClassForRoster] = useState<SchoolClass | null>(null);
+  const [selectedClassForWorkspace, setSelectedClassForWorkspace] = useState<SchoolClass | null>(null);
 
   // Modals
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
@@ -71,16 +79,23 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
         counts[c.id] = enrolled.length;
       }
       setClassStudentCounts(counts);
+
+      // If route has classId, auto-select it
+      if (routeClassId) {
+        const matched = yearClasses.find((c) => c.id === routeClassId);
+        if (matched) {
+          setSelectedClassForWorkspace(matched);
+        }
+      }
     } catch (err) {
       console.error('Failed to load classes:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [selectedAcademicYear]);
+  }, [selectedAcademicYear, routeClassId]);
 
   useEffect(() => {
     loadClasses();
-    setSelectedClassForRoster(null);
   }, [loadClasses]);
 
   const handleCreateClass = () => {
@@ -115,16 +130,17 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
     }
   };
 
-  // If teacher is viewing a class roster
-  if (selectedClassForRoster && selectedAcademicYear && school) {
+  // If teacher is viewing the rich Class Workspace
+  if (selectedClassForWorkspace && selectedAcademicYear && school) {
     return (
-      <ClassRosterView
-        schoolClass={selectedClassForRoster}
+      <ClassWorkspaceView
+        schoolClass={selectedClassForWorkspace}
         academicYear={selectedAcademicYear}
         schoolId={school.id}
         isReadOnly={isArchived}
         onBack={() => {
-          setSelectedClassForRoster(null);
+          setSelectedClassForWorkspace(null);
+          navigate('/classes');
           loadClasses();
         }}
         onViewStudentProfile={(studentId) => {
@@ -218,7 +234,7 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
               ? 'No Classes in this Academic Year'
               : `No ${activeLevelTab} Classes Found`
           }
-          description="Create your class divisions to begin importing student rosters and tracking attendance."
+          description="Create your class divisions to begin importing student rosters, scheduling timetable slots, and logging pedagogical sessions."
           action={
             !isArchived ? (
               <Button variant="primary" size="sm" onClick={handleCreateClass}>
@@ -287,10 +303,13 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
                     <Button
                       variant="primary"
                       size="sm"
-                      onClick={() => setSelectedClassForRoster(cls)}
+                      onClick={() => {
+                        setSelectedClassForWorkspace(cls);
+                        navigate(`/classes/${cls.id}`);
+                      }}
                       className="ms-auto"
                     >
-                      <span>View Roster</span>
+                      <span>Class Workspace</span>
                       <ArrowRight className="w-3.5 h-3.5" />
                     </Button>
                   </div>
