@@ -67,8 +67,17 @@ export const AcademicYearProvider: React.FC<{ children: React.ReactNode }> = ({ 
       }
     }
     init();
+
+    const handleDbRestored = () => {
+      refreshSchool();
+      refreshAcademicYears();
+    };
+
+    window.addEventListener('uns_database_restored', handleDbRestored);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('uns_database_restored', handleDbRestored);
     };
   }, [refreshSchool, refreshAcademicYears]);
 

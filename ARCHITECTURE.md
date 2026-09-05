@@ -135,6 +135,18 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - Accurately classifies persistence into `PERSISTENCE_GRANTED`, `PERSISTENCE_NOT_GRANTED`, and `PERSISTENCE_UNAVAILABLE`.
 - UI provides an explicit **Request Persistence** action without making false guarantees of permanent immunity to browser eviction.
 
-### 4.2. Portable Backup Format (`.unsschool`)
-- Because the workspace is client-only, user-managed backups are the primary protection against device failure or browser data eviction.
-- `.unsschool` packages encapsulate a complete snapshot of all normalized tables, version header, manifest, and export timestamp.
+### 4.2. Portable Backup & Restore Architecture (`.unsschool` Format)
+- **Container Format Specification**:
+  - Portable, client-generated `.unsschool` ZIP package using `fflate`.
+  - Manifest (`manifest.json`): Contains `backupFormatVersion` (`1.0.0`), `appVersion`, `appName`, `createdAt`, `dbSchemaVersion` (`1`), active school metadata, active academic year label, `tableSummary` (record counts & SHA-256 digests), `resourceSummary` (count, total bytes, SHA-256 file digests), and master `payloadsChecksumSHA256`.
+  - Table Payload Files (`tables/<tableName>.json`): Deterministically key-sorted JSON stringified arrays representing all 22 IndexedDB database tables.
+  - Attached Media Resource Files (`resources/<id>.bin`): Raw binary Uint8Array byte payloads for local resource files (`fileBlob`), separated from table JSON metadata to maintain clean text payload serialization.
+- **SHA-256 Integrity Verification Engine**:
+  - SHA-256 hashes computed independently over each table JSON text payload and each binary resource payload using Web Crypto API (`crypto.subtle.digest('SHA-256')`).
+  - Combined master composite checksum (`payloadsChecksumSHA256`) verifies that table digests and resource digests match the manifest header.
+- **Defensive Restore & Pre-Restore Safety Snapshot**:
+  - **In-Memory Safety Snapshot**: Before wiping or writing to live IndexedDB, `createSafetySnapshot()` captures an exact copy of all live IndexedDB records across all 22 tables in memory.
+  - **Atomic Transaction Execution**: Restoration wipes existing tables and bulk-inserts restored records inside a single Dexie readwrite transaction (`db.transaction('rw', db.tables, ...)`).
+  - **Post-Restore Integrity Verification & Automatic Rollback**: Post-restore verification checks live record counts against manifest summaries. If any mismatch or error occurs during restore, `restoreSafetySnapshot()` immediately rolls back live IndexedDB to its pre-restore state.
+- **Format Version Compatibility Rules**:
+  - Enforces major version format rules (`v1.x.x`). Rejects future unsupported major versions (`v2.0.0+`) with a clear user alert before any database modifications occur.

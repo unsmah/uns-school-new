@@ -58,22 +58,32 @@ A specialized, client-only, offline-first digital workspace tailored for Algeria
   - 100% calculated from authoritative `Lesson` records without redundant planning tables.
   - Historical lessons retain their exact curriculum version and sequences without being altered by active version changes.
 
-### 6. Local Storage, Offline Reliability & PWA (Phase 1 Completed)
+### 6. Assessments & Gradebook (Phase 6 Implemented)
+- **Continuous Trimester Assessment Engine**:
+  - Declarative grading calculation engine handling continuous assessment, term tests, and composition exams with frozen component snapshots (`componentSnapshot`).
+  - Strict coefficient weighting, absent zero-scoring semantics, and medical exemption handling.
+
+### 7. Offline Pedagogical Resources & Workflow Extras (Phase 7 Implemented)
+- **Teaching Aids & Worksheets Repository**:
+  - Offline resource repository storing lesson plans, worksheets, and flashcards with category filters, tag search, and binary Blob storage in IndexedDB.
+
+### 8. Official Documents, Printing & Export (Phase 8 Implemented)
+- **Official Middle-School Reports & Printing**:
+  - Class List Report, Attendance Register, Cahier de Journal, Cahier de Textes, Sequence Planning & Progression Report, and Assessment Marks Sheet.
+  - Print-optimized CSS (@media print), UTF-8 BOM CSV export, and historical curriculum/grading snapshot protection.
+
+### 9. Local-Only Backup & Restore System (Phase 9 Implemented)
+- **Portable `.unsschool` Package Export**:
+  - Single-click export of all 22 database tables and binary media resources into a self-contained `.unsschool` ZIP package using `fflate`.
+- **Cryptographic SHA-256 Integrity Verification**:
+  - Independent SHA-256 hashes over table JSON files and resource binary files, verified against a master composite digest (`payloadsChecksumSHA256`).
+- **Pre-Restore Inspection & Safety Snapshot**:
+  - Detailed pre-restore inspection modal showing backup version, record counts, resource sizes, and referential integrity insights.
+  - Automatically captures an in-memory safety snapshot before database restoration and executes atomic table restoration.
+- **Fail-Safe Automatic Rollback**:
+  - Instantly reverts to the safety snapshot if restore or post-restore verification fails, leaving live data untouched.
+
+### 10. Local Storage, Offline Reliability & PWA (Phase 1 Completed)
 - **100% Client-Only PWA**: Standalone installable PWA with full offline capabilities via service worker caching.
 - **Storage Diagnostics & Telemetry**: StorageManager API quota checks, persistence grant classification, and disaster recovery backup reminders.
-
----
-
-## Planned Future Phases (Not Yet Implemented)
-
-### Phase 6 — Continuous Assessment & Grading Engine (Future)
-- Trimester grading workflow (Continuous Assessment, Term Test, Composition Exam).
-- Declarative weighted arithmetic calculations without dynamic code evaluation.
-- Official bulletin and gradebook exports.
-
-### Phase 7 — Offline Resources & Pedagogical Deliverables (Future)
-- Pedagogical material repository, resource tagging, and document management.
-
-### Phase 8 — Official Reports & Printing (Future)
-- Print-optimized templates and official document export.
 

@@ -1,6 +1,6 @@
 # UNS SCHOOL — Project State
 
-**Phase**: Phase 8 — Official Documents, Printing & Export (Implementation Complete — External Audit Pending)
+**Phase**: Phase 9 — Backup & Restore (Implementation Complete — External Audit Pending)
 **Architecture**: 100% Client-Only SPA (React 19.0.1, Vite, TypeScript, Tailwind CSS, Dexie.js / IndexedDB)  
 **Target User**: Middle school English teachers in Algeria (1AM–4AM / 1MS–4MS)  
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
@@ -73,6 +73,22 @@
   - Cahier de Textes class history projection.
   - Planning & Progression Report with historical curriculum context protection.
   - Assessment & Marks Sheet consuming authoritative `gradingCalculationService` results with frozen snapshot protection.
+
+### 6. Local-Only Backup & Restore System (Phase 9 — Complete)
+- **Portable `.unsschool` ZIP Archive Format**:
+  - Self-contained ZIP container holding inspectable, key-sorted JSON table files (`tables/<tableName>.json`), attached resource binary files (`resources/<id>.bin`), and `manifest.json`.
+- **SHA-256 Cryptographic Checksum Engine**:
+  - Independent SHA-256 digests over table JSON payloads and binary resource blobs combined into a master composite digest (`payloadsChecksumSHA256`) to guarantee backup archive integrity.
+- **Version & Format Compatibility Rules**:
+  - Explicit format versioning (`v1.0.0`). Rejects unsupported future format major versions safely without partial writes.
+- **Pre-Restore Safety Snapshot & Defensive Rollback**:
+  - Automatically captures an in-memory safety snapshot of live IndexedDB data before restoring.
+  - Executes live database wipe and restoration inside an atomic Dexie transaction across all 22 tables.
+  - Instantly reverts to the safety snapshot if restore or post-restore verification fails.
+- **Referential Integrity Validation**:
+  - Pre-restore validation dry-run detects orphan attendance records, orphan grades, invalid enrollments, and broken references.
+- **Attached Media & Binary Resource Preservation**:
+  - Extracts and restores `fileBlob` binary data on `LocalResource` records with exact byte equality.
 
 ---
 

@@ -89,3 +89,10 @@ Because IndexedDB does not have built-in foreign key constraints, all integrity 
 
 12. **Pure Derived Planning Layer**:
    - Sequence progress, completion percentages, competency coverage counts, and pacing metrics are dynamically derived at query time from `lessons` records. No intermediate planning snapshot tables exist.
+
+13. **Backup Archive Verification & Restore Transaction Invariants**:
+   - Backup creation exports all 22 IndexedDB tables into deterministic JSON files (`tables/<tableName>.json`) and extracts binary media blobs into `resources/<id>.bin`.
+   - Manifest includes independent SHA-256 digests for every table file and resource blob, plus a master composite digest (`payloadsChecksumSHA256`).
+   - Pre-restore validation inspects format version compatibility (`v1.x.x`), recomputes SHA-256 hashes, performs referential integrity dry-runs, and calculates storage quota requirements.
+   - Restoration is guarded by an in-memory safety snapshot (`createSafetySnapshot()`) and executes table wipes and bulk inserts inside a single atomic Dexie transaction across all 22 tables (`db.transaction('rw', db.tables, ...)`).
+   - Any failure during restore or post-restore verification triggers automatic rollback (`restoreSafetySnapshot()`), leaving live IndexedDB unchanged.
