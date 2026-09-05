@@ -93,6 +93,7 @@ Because IndexedDB does not have built-in foreign key constraints, all integrity 
 13. **Backup Archive Verification & Restore Transaction Invariants**:
    - Backup creation exports all 22 IndexedDB tables into deterministic JSON files (`tables/<tableName>.json`) and extracts binary media blobs into `resources/<id>.bin`.
    - Manifest includes independent SHA-256 digests for every table file and resource blob, plus a master composite digest (`payloadsChecksumSHA256`).
-   - Pre-restore validation inspects format version compatibility (`v1.x.x`), recomputes SHA-256 hashes, performs referential integrity dry-runs, and calculates storage quota requirements.
+   - Pre-restore validation inspects format version compatibility (`v1.x.x`), recomputes SHA-256 hashes, performs comprehensive referential integrity dry-runs across all 22 entities, checks 1-to-1 resource file matching, and calculates storage quota requirements.
+   - Referential integrity violations (orphan attendance, orphan grades, invalid enrollments, invalid lesson/assessment curriculum references) or resource binary mismatches contribute directly to `errors` and set `isValid = false`, strictly blocking restoration (`backupPackage = null`). Invalid backup records are never repaired or partially restored.
    - Restoration is guarded by an in-memory safety snapshot (`createSafetySnapshot()`) and executes table wipes and bulk inserts inside a single atomic Dexie transaction across all 22 tables (`db.transaction('rw', db.tables, ...)`).
    - Any failure during restore or post-restore verification triggers automatic rollback (`restoreSafetySnapshot()`), leaving live IndexedDB unchanged.

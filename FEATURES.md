@@ -77,6 +77,9 @@ A specialized, client-only, offline-first digital workspace tailored for Algeria
   - Single-click export of all 22 database tables and binary media resources into a self-contained `.unsschool` ZIP package using `fflate`.
 - **Cryptographic SHA-256 Integrity Verification**:
   - Independent SHA-256 hashes over table JSON files and resource binary files, verified against a master composite digest (`payloadsChecksumSHA256`).
+- **Strict Blocking Referential & Resource Integrity Validation**:
+  - Pre-restore validation dry-run inspecting foreign key integrity across all 22 domain entities and strict 1-to-1 resource file matching (checksums, byte sizes, orphan binaries).
+  - Any referential integrity violation or resource binary discrepancy directly sets `isValid = false` and blocks restore (`backupPackage = null`), preventing restorable corrupt archives.
 - **Pre-Restore Inspection & Safety Snapshot**:
   - Detailed pre-restore inspection modal showing backup version, record counts, resource sizes, and referential integrity insights.
   - Automatically captures an in-memory safety snapshot before database restoration and executes atomic table restoration.

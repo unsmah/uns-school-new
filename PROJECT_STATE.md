@@ -85,10 +85,11 @@
   - Automatically captures an in-memory safety snapshot of live IndexedDB data before restoring.
   - Executes live database wipe and restoration inside an atomic Dexie transaction across all 22 tables.
   - Instantly reverts to the safety snapshot if restore or post-restore verification fails.
-- **Referential Integrity Validation**:
-  - Pre-restore validation dry-run detects orphan attendance records, orphan grades, invalid enrollments, and broken references.
+- **Strict Blocking Referential & Resource Integrity Validation**:
+  - Pre-restore validation dry-run checks referential integrity across all 22 domain entities (StudentEnrollment, Class, GradingScheme, Lesson, Attendance, Assessment, GradeEntry, Homework, Observation, Remediation, Timetable, CurriculumLevel, Competency, SessionRubric, CurriculumSequence, LearningObjective, AcademicYear).
+  - Any broken foreign key relationship or resource binary mismatch (missing binary, orphan binary, size or SHA-256 mismatch) contributes to `errors` and renders `isValid = false`, strictly blocking restoration and setting `backupPackage = null`.
 - **Attached Media & Binary Resource Preservation**:
-  - Extracts and restores `fileBlob` binary data on `LocalResource` records with exact byte equality.
+  - Extracts and restores `fileBlob` binary data on `LocalResource` records with exact byte equality and strict 1-to-1 manifest and table alignment.
 
 ---
 

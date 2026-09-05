@@ -69,6 +69,7 @@ export interface ReferentialIntegrityReport {
   invalidLessonsCount: number;
   invalidAssessmentsCount: number;
   invalidTimetableSlotsCount: number;
+  invalidCurriculumRefsCount: number;
   details: string[];
 }
 
