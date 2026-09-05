@@ -37,6 +37,7 @@ import {
   LoadingState,
   EmptyState,
   Input,
+  Modal,
 } from '../../components/ui';
 import { LessonModal } from '../../components/lessons/LessonModal';
 import type {
@@ -66,6 +67,7 @@ export const LessonsPage: React.FC = () => {
   // Modals & form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
@@ -139,22 +141,21 @@ export const LessonsPage: React.FC = () => {
     }
   };
 
-  const handleDeleteLesson = async (lesson: Lesson) => {
+  const handleDeleteLesson = (lesson: Lesson) => {
     if (isArchived) return;
-    if (
-      !confirm(
-        `Are you sure you want to delete lesson "${lesson.title}" (${lesson.date})? This will also remove any attendance records taken for this session.`
-      )
-    ) {
-      return;
-    }
+    setLessonToDelete(lesson);
+  };
 
+  const handleConfirmDeleteLesson = async () => {
+    if (!lessonToDelete) return;
     try {
-      await lessonRepository.delete(lesson.id);
+      await lessonRepository.delete(lessonToDelete.id);
+      setLessonToDelete(null);
       await loadData();
       setFeedbackSuccess(`Lesson and associated attendance records deleted.`);
     } catch (err: unknown) {
       setFeedbackError(err instanceof Error ? err.message : 'Failed to delete lesson.');
+      setLessonToDelete(null);
     }
   };
 
@@ -537,6 +538,30 @@ export const LessonsPage: React.FC = () => {
             );
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {lessonToDelete && (
+        <Modal
+          isOpen={Boolean(lessonToDelete)}
+          onClose={() => setLessonToDelete(null)}
+          title="Delete Lesson Session"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete lesson{' '}
+              <strong className="text-slate-900 dark:text-slate-100">{lessonToDelete.title}</strong> ({lessonToDelete.date})? This will also remove any attendance records taken for this session.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setLessonToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDeleteLesson}>
+                Delete Lesson
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

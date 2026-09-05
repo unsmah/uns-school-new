@@ -20,7 +20,7 @@ import {
   Calendar,
 } from 'lucide-react';
 import { studentEnrollmentRepository, studentPersonRepository } from '../../db/repositories';
-import { Card, Button, Badge, Alert, EmptyState, LoadingState } from '../../components/ui';
+import { Card, Button, Badge, Alert, EmptyState, LoadingState, Modal } from '../../components/ui';
 import { StudentCsvImportModal } from '../../components/import/StudentCsvImportModal';
 import { EnrollStudentModal } from '../../components/students/EnrollStudentModal';
 import { StudentPersonModal } from '../../components/students/StudentPersonModal';
@@ -60,6 +60,10 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
     enrollment: StudentEnrollment;
     studentName: string;
   } | null>(null);
+  const [enrollmentToDelete, setEnrollmentToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
@@ -82,22 +86,22 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
     loadRoster();
   }, [loadRoster]);
 
-  const handleDeleteEnrollment = async (enrollmentId: string, studentName: string) => {
+  const handleDeleteEnrollment = (enrollmentId: string, studentName: string) => {
     if (isReadOnly) return;
-    if (
-      !confirm(
-        `Are you sure you want to remove ${studentName} from this class? This will delete their enrollment record for this year if no attendance or assessments are linked.`
-      )
-    ) {
-      return;
-    }
+    setEnrollmentToDelete({ id: enrollmentId, name: studentName });
+  };
 
+  const handleConfirmDeleteEnrollment = async () => {
+    if (!enrollmentToDelete) return;
     try {
-      await studentEnrollmentRepository.delete(enrollmentId);
+      await studentEnrollmentRepository.delete(enrollmentToDelete.id);
+      const name = enrollmentToDelete.name;
+      setEnrollmentToDelete(null);
       await loadRoster();
-      setFeedbackSuccess(`Removed ${studentName} from class roster.`);
+      setFeedbackSuccess(`Removed ${name} from class roster.`);
     } catch (err: unknown) {
       setFeedbackError(err instanceof Error ? err.message : 'Cannot remove enrollment.');
+      setEnrollmentToDelete(null);
     }
   };
 
@@ -422,6 +426,30 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
             setFeedbackSuccess('Updated student enrollment status.');
           }}
         />
+      )}
+
+      {/* Delete Enrollment Confirmation Modal */}
+      {enrollmentToDelete && (
+        <Modal
+          isOpen={Boolean(enrollmentToDelete)}
+          onClose={() => setEnrollmentToDelete(null)}
+          title="Remove Student from Class"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to remove{' '}
+              <strong className="text-slate-900 dark:text-slate-100">{enrollmentToDelete.name}</strong> from this class? This will delete their enrollment record for this year if no attendance or assessments are linked.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setEnrollmentToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDeleteEnrollment}>
+                Remove Student
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

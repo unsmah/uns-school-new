@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { academicYearRepository, classRepository, studentEnrollmentRepository } from '../../db/repositories';
-import { Card, Button, Badge, Alert, LoadingState, EmptyState } from '../../components/ui';
+import { Card, Button, Badge, Alert, LoadingState, EmptyState, Modal } from '../../components/ui';
 import { AcademicYearModal } from '../../components/academic-year/AcademicYearModal';
 import { SchoolModal } from '../../components/school/SchoolModal';
 import type { AcademicYear } from '../../types';
@@ -30,6 +30,7 @@ export const AcademicYearsPage: React.FC = () => {
   const [yearStats, setYearStats] = useState<Record<string, { classCount: number; studentCount: number }>>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingYear, setEditingYear] = useState<AcademicYear | null>(null);
+  const [yearToDelete, setYearToDelete] = useState<AcademicYear | null>(null);
   const [isSchoolModalOpen, setIsSchoolModalOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -113,18 +114,23 @@ export const AcademicYearsPage: React.FC = () => {
     }
   };
 
-  const handleDelete = async (year: AcademicYear) => {
-    if (!confirm(`Are you sure you want to delete empty academic year "${year.label}"?`)) {
-      return;
-    }
+  const handleDelete = (year: AcademicYear) => {
+    setYearToDelete(year);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!yearToDelete) return;
     setIsProcessing(true);
     setActionError(null);
     try {
-      await academicYearRepository.deleteIfEmpty(year.id);
+      await academicYearRepository.deleteIfEmpty(yearToDelete.id);
+      const label = yearToDelete.label;
+      setYearToDelete(null);
       await refreshAcademicYears();
-      setActionSuccess(`Academic year "${year.label}" was deleted.`);
+      setActionSuccess(`Academic year "${label}" was deleted.`);
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : 'Cannot delete academic year.');
+      setYearToDelete(null);
     } finally {
       setIsProcessing(false);
     }
@@ -448,6 +454,30 @@ export const AcademicYearsPage: React.FC = () => {
             );
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {yearToDelete && (
+        <Modal
+          isOpen={Boolean(yearToDelete)}
+          onClose={() => setYearToDelete(null)}
+          title="Delete Academic Year"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete empty academic year{' '}
+              <strong className="text-slate-900 dark:text-slate-100">{yearToDelete.label}</strong>?
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setYearToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDelete} disabled={isProcessing}>
+                Delete Academic Year
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

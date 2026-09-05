@@ -77,4 +77,15 @@ export const studentPersonRepository = {
   async count(): Promise<number> {
     return await db.studentPersons.count();
   },
+
+  async delete(id: string): Promise<void> {
+    await db.transaction('rw', db.studentPersons, db.studentEnrollments, db.grades, async () => {
+      const enrollments = await db.studentEnrollments.where('studentPersonId').equals(id).toArray();
+      for (const enr of enrollments) {
+        await db.grades.where('studentEnrollmentId').equals(enr.id).delete();
+        await db.studentEnrollments.delete(enr.id);
+      }
+      await db.studentPersons.delete(id);
+    });
+  },
 };

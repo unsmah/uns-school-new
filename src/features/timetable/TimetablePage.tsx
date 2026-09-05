@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { timetableRepository, classRepository } from '../../db/repositories';
-import { Card, Button, Badge, Alert, LoadingState, EmptyState, Select } from '../../components/ui';
+import { Card, Button, Badge, Alert, LoadingState, EmptyState, Select, Modal } from '../../components/ui';
 import { TimetableSlotModal } from '../../components/timetable/TimetableSlotModal';
 import type { TimetableSlot, SchoolClass } from '../../types';
 
@@ -62,6 +62,7 @@ export const TimetablePage: React.FC = () => {
   // Modals & form state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSlot, setEditingSlot] = useState<TimetableSlot | null>(null);
+  const [slotToDelete, setSlotToDelete] = useState<TimetableSlot | null>(null);
   const [targetDayForNewSlot, setTargetDayForNewSlot] = useState<TimetableSlot['dayOfWeek']>('Sunday');
   const [targetPeriodForNewSlot, setTargetPeriodForNewSlot] = useState<number>(1);
 
@@ -110,21 +111,21 @@ export const TimetablePage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteSlot = async (slot: TimetableSlot) => {
+  const handleDeleteSlot = (slot: TimetableSlot) => {
     if (isArchived) return;
-    const cls = classes.find((c) => c.id === slot.classId);
-    const className = cls?.name || 'this class';
+    setSlotToDelete(slot);
+  };
 
-    if (!confirm(`Delete timetable slot for ${className} on ${slot.dayOfWeek} (Period ${slot.periodNumber})?`)) {
-      return;
-    }
-
+  const handleConfirmDeleteSlot = async () => {
+    if (!slotToDelete) return;
     try {
-      await timetableRepository.delete(slot.id);
+      await timetableRepository.delete(slotToDelete.id);
+      setSlotToDelete(null);
       await loadData();
       setFeedbackSuccess(`Timetable slot removed.`);
     } catch (err: unknown) {
       setFeedbackError(err instanceof Error ? err.message : 'Failed to delete slot.');
+      setSlotToDelete(null);
     }
   };
 
@@ -414,6 +415,33 @@ export const TimetablePage: React.FC = () => {
             );
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {slotToDelete && (
+        <Modal
+          isOpen={Boolean(slotToDelete)}
+          onClose={() => setSlotToDelete(null)}
+          title="Delete Timetable Slot"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete this timetable slot for{' '}
+              <strong className="text-slate-900 dark:text-slate-100">
+                {classes.find((c) => c.id === slotToDelete.classId)?.name || 'Class'}
+              </strong>{' '}
+              on {slotToDelete.dayOfWeek} (Period {slotToDelete.periodNumber})?
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setSlotToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleConfirmDeleteSlot}>
+                Delete Slot
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

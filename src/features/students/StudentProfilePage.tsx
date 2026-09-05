@@ -17,6 +17,7 @@ import {
   Edit2,
   UserPlus,
   CheckCircle2,
+  Trash2,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import {
@@ -25,7 +26,7 @@ import {
   classRepository,
   academicYearRepository,
 } from '../../db/repositories';
-import { Card, Button, Badge, Alert, LoadingState, EmptyState } from '../../components/ui';
+import { Card, Button, Badge, Alert, LoadingState, EmptyState, Modal } from '../../components/ui';
 import { StudentPersonModal } from '../../components/students/StudentPersonModal';
 import { EnrollStudentModal } from '../../components/students/EnrollStudentModal';
 import { ChangeEnrollmentStatusModal } from '../../components/students/ChangeEnrollmentStatusModal';
@@ -57,6 +58,22 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({
   const [isEditIdentityModalOpen, setIsEditIdentityModalOpen] = useState(false);
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteStudent = async () => {
+    if (!person) return;
+    setIsDeleting(true);
+    try {
+      await studentPersonRepository.delete(person.id);
+      setIsDeleteModalOpen(false);
+      onBack();
+    } catch (err: unknown) {
+      setFeedbackError(err instanceof Error ? err.message : 'Failed to delete student.');
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -170,6 +187,16 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({
           >
             <Edit2 className="w-3.5 h-3.5" />
             Edit Identity
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsDeleteModalOpen(true)}
+            className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete Student
           </Button>
 
           {selectedAcademicYear && !activeEnrollment && !isArchived && (
@@ -512,6 +539,33 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({
             setFeedbackSuccess('Enrollment status updated.');
           }}
         />
+      )}
+
+      {/* Delete Student Confirmation Modal */}
+      {isDeleteModalOpen && (
+        <Modal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Delete Permanent Student Record"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to permanently delete student{' '}
+              <strong className="text-slate-900 dark:text-slate-100">
+                {person.lastNameLatin.toUpperCase()} {person.firstNameLatin}
+              </strong>
+              ? This will remove all their enrollments and grade records across all academic years.
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteStudent} isLoading={isDeleting}>
+                Delete Student
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );

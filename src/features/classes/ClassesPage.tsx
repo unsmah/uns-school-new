@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { classRepository, studentEnrollmentRepository } from '../../db/repositories';
-import { Card, Button, Badge, Alert, LoadingState, EmptyState } from '../../components/ui';
+import { Card, Button, Badge, Alert, LoadingState, EmptyState, Modal } from '../../components/ui';
 import { ClassModal } from '../../components/classes/ClassModal';
 import { ClassRosterView } from './ClassRosterView';
 import { ClassWorkspaceView } from '../../components/classes/ClassWorkspaceView';
@@ -55,6 +55,7 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
   // Modals
   const [isClassModalOpen, setIsClassModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<SchoolClass | null>(null);
+  const [classToDelete, setClassToDelete] = useState<SchoolClass | null>(null);
   const [importTargetClass, setImportTargetClass] = useState<SchoolClass | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
@@ -117,16 +118,19 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
       setFeedbackError(`Cannot delete class "${cls.name}" because it contains ${count} enrolled students. Unenroll or transfer them first.`);
       return;
     }
-    if (!confirm(`Are you sure you want to delete empty class "${cls.name}"?`)) {
-      return;
-    }
+    setClassToDelete(cls);
+  };
 
+  const handleDeleteConfirm = async () => {
+    if (!classToDelete) return;
     try {
-      await classRepository.deleteIfEmpty(cls.id);
+      await classRepository.deleteIfEmpty(classToDelete.id);
+      setClassToDelete(null);
       await loadClasses();
-      setFeedbackSuccess(`Class "${cls.name}" was deleted.`);
+      setFeedbackSuccess(`Class "${classToDelete.name}" was deleted.`);
     } catch (err: unknown) {
       setFeedbackError(err instanceof Error ? err.message : 'Failed to delete class.');
+      setClassToDelete(null);
     }
   };
 
@@ -377,6 +381,30 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
             setFeedbackSuccess(`Student roster imported into ${importTargetClass.name}.`);
           }}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {classToDelete && (
+        <Modal
+          isOpen={Boolean(classToDelete)}
+          onClose={() => setClassToDelete(null)}
+          title="Delete Empty Class"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-slate-700 dark:text-slate-300">
+              Are you sure you want to delete empty class{' '}
+              <strong className="text-slate-900 dark:text-slate-100">{classToDelete.name}</strong>?
+            </p>
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <Button variant="secondary" onClick={() => setClassToDelete(null)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm}>
+                Delete Class
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
