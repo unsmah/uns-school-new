@@ -97,7 +97,8 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - **Derived Read-Only Projections**:
   - **Cahier Journal (دفتر اليومية)**: Dynamically calculated daily view aggregating lessons across all classes for a selected date in the active academic year with live attendance metrics.
   - **Cahier de Textes (دفتر النصوص)**: Dynamically calculated chronological log per class strictly scoped by `academicYearId + classId`.
-  - Both views are pure derived projections without independent storage tables, preventing state synchronization drift.
+  - Both views are pure derived digital browser projections without independent storage tables, preventing state synchronization drift.
+  - Printable outputs and official document export belong strictly to Phase 8.
 - **Historical Curriculum Version Preservation**:
   - Projections resolve pedagogical sequence titles, session rubric names, and competencies dynamically from each lesson's own `curriculumVersionId` rather than assuming only the active version.
 

@@ -11,7 +11,6 @@ import {
   ClipboardList,
   Calendar,
   Clock,
-  Printer,
   ChevronLeft,
   ChevronRight,
   UserCheck,
@@ -213,10 +212,6 @@ export const CahierJournalPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
-
   // Formatted date string in English, French, and Arabic
   const formattedDateTitle = useMemo(() => {
     try {
@@ -238,8 +233,8 @@ export const CahierJournalPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-4">
-      {/* Top Header & Inspection Meta */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 print:hidden">
+      {/* Top Header & Meta */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
           <div className="flex items-center gap-2">
             <ClipboardList className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
@@ -256,17 +251,6 @@ export const CahierJournalPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePrint}
-            className="flex items-center gap-1.5"
-            title="Print daily log"
-          >
-            <Printer className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span>Print Log</span>
-          </Button>
-
           {!isArchived && (
             <Button
               variant="primary"
@@ -282,7 +266,7 @@ export const CahierJournalPage: React.FC = () => {
       </div>
 
       {/* Date & Filter Navigation Bar */}
-      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3 print:hidden">
+      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Date Stepper */}
         <div className="flex items-center gap-2">
           <Button
@@ -377,7 +361,7 @@ export const CahierJournalPage: React.FC = () => {
             return (
               <div
                 key={lesson.id}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden print:border-slate-400 print:shadow-none"
+                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
               >
                 {/* Session Top Bar */}
                 <div className="bg-slate-50 dark:bg-slate-800/80 px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
@@ -413,7 +397,7 @@ export const CahierJournalPage: React.FC = () => {
                   </div>
 
                   {/* Top Actions */}
-                  <div className="flex items-center gap-2 print:hidden">
+                  <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
