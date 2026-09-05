@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="uns-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#047857" />
+      <stop offset="100%" stop-color="#0f766e" />
+    </linearGradient>
+  </defs>
+  <!-- Background with subtle corner radius -->
+  <rect width="512" height="512" rx="96" fill="url(#uns-grad)" />
+  
+  <!-- Stylized Open Book & Quill Emblem -->
+  <g fill="none" stroke="#ffffff" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" transform="translate(64, 80)">
+    <!-- Book Spine & Pages -->
+    <path d="M192 320 C140 280 60 280 0 300 L0 80 C60 60 140 60 192 100 C244 60 324 60 384 80 L384 300 C324 280 244 280 192 320 Z" fill="#ffffff" fill-opacity="0.12" />
+    <path d="M192 100 L192 320" />
+    
+    <!-- Accent Marks on Pages -->
+    <line x1="48" y1="140" x2="144" y2="155" stroke-width="16" stroke-opacity="0.7" />
+    <line x1="48" y1="190" x2="144" y2="205" stroke-width="16" stroke-opacity="0.7" />
+    <line x1="240" y1="155" x2="336" y2="140" stroke-width="16" stroke-opacity="0.7" />
+    <line x1="240" y1="205" x2="336" y2="190" stroke-width="16" stroke-opacity="0.7" />
+  </g>
+  
+  <!-- Academic Cap Accent -->
+  <path d="M256 110 L350 160 L256 210 L162 160 Z" fill="#f8fafc" />
+  <path d="M200 186 L200 230 C200 250 312 250 312 230 L312 186" fill="none" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" />
+  <path d="M350 160 L360 220" stroke="#f8fafc" stroke-width="8" stroke-linecap="round" />
+  <circle cx="360" cy="226" r="6" fill="#f8fafc" />
+</svg>
