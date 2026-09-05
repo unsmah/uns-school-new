@@ -44,6 +44,16 @@ export const AppLayout: React.FC = () => {
   const { resolvedTheme, setTheme } = useTheme();
   const location = useLocation();
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen]);
+
   const navigationItems = [
     { to: '/dashboard', label: t('nav_dashboard'), icon: LayoutDashboard },
     { to: '/academic-years', label: t('nav_academic_years'), icon: Calendar },
@@ -78,6 +88,14 @@ export const AppLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased">
+      {/* Skip to Main Content Link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:start-2 focus:z-50 focus:px-3 focus:py-2 focus:bg-emerald-700 focus:text-white focus:rounded-lg font-medium text-xs shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       {/* Top Application Header */}
       <header className="print:hidden sticky top-0 z-40 h-14 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
@@ -195,7 +213,11 @@ export const AppLayout: React.FC = () => {
         )}
 
         {/* Main Content View */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible focus:outline-hidden"
+        >
           <div className="max-w-6xl mx-auto print:max-w-none print:w-full">
             <Outlet />
           </div>

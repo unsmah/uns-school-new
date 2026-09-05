@@ -62,6 +62,8 @@ export const Modal: React.FC<ModalProps> = ({
       className="fixed inset-0 z-50 overflow-y-auto"
       role="dialog"
       aria-modal="true"
+      aria-labelledby="modal-title"
+      aria-describedby={description ? 'modal-description' : undefined}
     >
       {/* Semi-transparent Backdrop */}
       <div
@@ -79,18 +81,18 @@ export const Modal: React.FC<ModalProps> = ({
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/50">
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+              <h3 id="modal-title" className="text-base font-bold text-slate-900 dark:text-white leading-tight">
                 {title}
               </h3>
               {description && (
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                <p id="modal-description" className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
                   {description}
                 </p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-600"
               aria-label="Close dialog"
             >
               <X className="w-4 h-4" />

@@ -32,6 +32,10 @@ export const Input: React.FC<InputProps> = ({
       )}
       <input
         id={inputId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={
+          error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
+        }
         className={`w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors ${
           error
             ? 'border-rose-500 focus-visible:ring-rose-500'
@@ -39,9 +43,15 @@ export const Input: React.FC<InputProps> = ({
         } ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && (
+        <p id={`${inputId}-error`} className="text-xs text-rose-600 dark:text-rose-400">
+          {error}
+        </p>
+      )}
       {helperText && !error && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
+        <p id={`${inputId}-helper`} className="text-xs text-slate-500 dark:text-slate-400">
+          {helperText}
+        </p>
       )}
     </div>
   );
@@ -75,6 +85,8 @@ export const Select: React.FC<SelectProps> = ({
       )}
       <select
         id={selectId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${selectId}-error` : undefined}
         className={`w-full px-3 py-2 text-sm rounded-lg border bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors ${
           error
             ? 'border-rose-500 focus-visible:ring-rose-500'
@@ -88,7 +100,11 @@ export const Select: React.FC<SelectProps> = ({
           </option>
         ))}
       </select>
-      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && (
+        <p id={`${selectId}-error`} className="text-xs text-rose-600 dark:text-rose-400">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

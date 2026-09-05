@@ -1,6 +1,6 @@
 # UNS SCHOOL — Project State
 
-**Phase**: Phase 9 — Backup & Restore (Implementation Complete — External Audit Pending)
+**Phase**: Phase 10 — Hardening, Accessibility & Offline Stress Testing (Implementation Complete — External Audit Pending)
 **Architecture**: 100% Client-Only SPA (React 19.0.1, Vite, TypeScript, Tailwind CSS, Dexie.js / IndexedDB)  
 **Target User**: Middle school English teachers in Algeria (1AM–4AM / 1MS–4MS)  
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
@@ -86,10 +86,28 @@
   - Executes live database wipe and restoration inside an atomic Dexie transaction across all 22 tables.
   - Instantly reverts to the safety snapshot if restore or post-restore verification fails.
 - **Strict Blocking Referential & Resource Integrity Validation**:
-  - Pre-restore validation dry-run checks referential integrity across all 22 domain entities (StudentEnrollment, Class, GradingScheme, Lesson, Attendance, Assessment, GradeEntry, Homework, Observation, Remediation, Timetable, CurriculumLevel, Competency, SessionRubric, CurriculumSequence, LearningObjective, AcademicYear).
-  - Any broken foreign key relationship or resource binary mismatch (missing binary, orphan binary, size or SHA-256 mismatch) contributes to `errors` and renders `isValid = false`, strictly blocking restoration and setting `backupPackage = null`.
+  - Pre-restore validation dry-run checks referential integrity across all 22 domain entities.
+  - Any broken foreign key relationship or resource binary mismatch renders `isValid = false`, strictly blocking restoration and setting `backupPackage = null`.
 - **Attached Media & Binary Resource Preservation**:
-  - Extracts and restores `fileBlob` binary data on `LocalResource` records with exact byte equality and strict 1-to-1 manifest and table alignment.
+  - Extracts and restores `fileBlob` binary data on `LocalResource` records with exact byte equality.
+
+### 7. Final Hardening, Accessibility & Offline Stress Testing (Phase 10 — Complete)
+- **Accessibility Hardening**:
+  - Skip to main content link added to the application shell.
+  - Modals updated with proper `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby`, and Escape key dismissal handlers.
+  - `Input` and `Select` primitives wired with `aria-invalid` and `aria-describedby` referencing error messages.
+  - Table headers audit: table columns configured with `scope="col"` or proper structure across feature views.
+- **Responsive Layout Hardening**:
+  - Horizontal scrolling handled on data tables, timeline grids, and tab bars (`overflow-x-auto`).
+  - Mobile sidebar drawer dismissible via overlay tap or Keyboard `Escape`.
+- **Offline & Storage Resilience**:
+  - PWA service worker offline caching configured via Vite PWA plugin.
+  - Offline status indicator reassures teachers that all operations persist locally in IndexedDB.
+- **Destructive Action Safety**:
+  - Destructive operations (class deletion, lesson deletion, student enrollment removal, academic year deletion, backup overwrite) require explicit modal confirmation.
+- **Security & Zero-Network Audit**:
+  - Zero external HTTP fetch, API requests, cloud dependencies, or remote script execution.
+  - High-precision student NIN search supported without exposing sensitive civil fields in public lists.
 
 ---
 
@@ -123,5 +141,6 @@
 
 8. **Two-Tier Student Identity & Enrollment**:
    - Active enrollment is strictly unique per student per academic year. Register numbers are unique per class roster.
+
 
 
