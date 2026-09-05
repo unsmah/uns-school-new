@@ -27,6 +27,9 @@ import {
   Sun,
   Moon,
   Languages,
+  PenTool,
+  MessageSquare,
+  Activity
 } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { useTheme } from '../../theme/ThemeContext';
@@ -54,6 +57,9 @@ export const AppLayout: React.FC = () => {
     { to: '/attendance', label: t('nav_attendance'), icon: UserCheck },
     { to: '/assessment', label: t('nav_assessment'), icon: Award },
     { to: '/gradebook', label: t('nav_gradebook'), icon: BookMarked },
+    { to: '/homework', label: 'Homework', icon: PenTool },
+    { to: '/observations', label: 'Observations', icon: MessageSquare },
+    { to: '/remediation', label: 'Remediation', icon: Activity },
     { to: '/curriculum', label: t('nav_curriculum'), icon: BookOpen },
     { to: '/resources', label: t('nav_resources'), icon: FolderOpen },
     { to: '/reports', label: t('nav_reports'), icon: Printer },

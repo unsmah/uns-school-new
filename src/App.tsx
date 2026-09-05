@@ -34,6 +34,10 @@ import { CalendarPage } from './features/calendar/CalendarPage';
 import { SettingsPage } from './features/settings/SettingsPage';
 import { BackupPage } from './features/backup/BackupPage';
 
+import { HomeworkPage } from './features/homework/HomeworkPage';
+import { ObservationsPage } from './features/observations/ObservationsPage';
+import { RemediationPage } from './features/remediation/RemediationPage';
+
 export function App() {
   React.useEffect(() => {
     seedInitialData(db).catch((err) => {
@@ -64,6 +68,9 @@ export function App() {
                   <Route path="assessment" element={<AssessmentPage />} />
                   <Route path="assessments" element={<Navigate to="/assessment" replace />} />
                   <Route path="gradebook" element={<GradebookPage />} />
+                  <Route path="homework" element={<HomeworkPage />} />
+                  <Route path="observations" element={<ObservationsPage />} />
+                  <Route path="remediation" element={<RemediationPage />} />
                   <Route path="curriculum" element={<CurriculumPage />} />
                   <Route path="resources" element={<ResourcesPage />} />
                   <Route path="reports" element={<ReportsPage />} />

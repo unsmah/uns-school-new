@@ -26,6 +26,9 @@ import {
   School as SchoolIcon,
   CheckCircle2,
   Clock,
+  PenTool,
+  MessageSquare,
+  Activity
 } from 'lucide-react';
 import { Card, Badge, Button } from '../../components/ui';
 import { useAcademicYear } from '../../context/AcademicYearContext';
@@ -80,6 +83,9 @@ export const DashboardPage: React.FC = () => {
     { to: '/timetable', title: 'Timetable', icon: CalendarDays, desc: 'Weekly schedule & period management (Sun-Thu)', status: 'Phase 3 Live', highlight: true },
     { to: '/lessons', title: 'Lessons & Sessions', icon: BookOpen, desc: 'Pedagogical sessions & Cahier Journal inspection view', status: 'Phase 3 Live', highlight: true },
     { to: '/attendance', title: 'Attendance Register', icon: UserCheck, desc: 'Lesson-anchored roll call & class statistics', status: 'Phase 3 Live', highlight: true },
+    { to: '/homework', title: 'Homework', icon: PenTool, desc: 'Student assignments & due dates', status: 'Phase 7 Live', highlight: true },
+    { to: '/observations', title: 'Observations', icon: MessageSquare, desc: 'Pedagogical notes & behaviour tracking', status: 'Phase 7 Live', highlight: true },
+    { to: '/remediation', title: 'Remediation', icon: Activity, desc: 'Targeted support sessions & interventions', status: 'Phase 7 Live', highlight: true },
     { to: '/classes', title: 'Classes & Workspaces', icon: Users, desc: 'School classes, level divisions & class workspaces', status: 'Phase 3 Live', highlight: true },
     { to: '/students', title: 'Students', icon: GraduationCap, desc: 'StudentPerson & multi-year historical context', status: 'Phase 2 Live', highlight: true },
     { to: '/academic-years', title: 'Academic Years', icon: Calendar, desc: 'School profile & academic year lifecycle', status: 'Phase 2 Live', highlight: true },
