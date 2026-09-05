@@ -106,6 +106,7 @@ export const assessmentRepository = {
           ...assessment,
           title: assessment.title.trim(),
           componentSnapshot,
+          maxOverallScoreSnapshot: assessment.maxOverallScoreSnapshot || scheme.maxOverallScore,
           createdAt: assessment.createdAt || now,
           updatedAt: now,
         });

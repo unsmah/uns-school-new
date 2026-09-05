@@ -95,7 +95,7 @@ export const GradebookPage: React.FC = () => {
       const [students, termAssessments, classGrades] = await Promise.all([
         studentEnrollmentRepository.listByClass(selectedClassId),
         assessmentRepository.listByClassAndTerm(selectedClassId, termNumber),
-        gradeRepository.listByClassAndTerm(selectedClassId, termNumber),
+        gradeRepository.listByClassAndTerm(selectedYearId || '', selectedClassId, termNumber),
       ]);
 
       const activeStudents = students.filter((s) => s.enrollment.status === 'active');

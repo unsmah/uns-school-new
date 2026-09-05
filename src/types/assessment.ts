@@ -20,6 +20,7 @@ export interface Assessment {
   targetedCompetencyIds?: string[];
   isLocked: boolean; // Locked after term deliberation
   componentSnapshot?: GradingComponentConfig; // Historical snapshot of component config at creation time
+  maxOverallScoreSnapshot?: number; // Historical snapshot of grading scheme maxOverallScore at creation time
   createdAt: string;
   updatedAt: string;
 }

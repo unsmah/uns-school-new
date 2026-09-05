@@ -15,11 +15,11 @@ export const gradeRepository = {
     return await db.grades.where('studentEnrollmentId').equals(studentEnrollmentId).toArray();
   },
 
-  async listByClassAndTerm(classId: string, termNumber: 1 | 2 | 3): Promise<GradeEntry[]> {
+  async listByClassAndTerm(academicYearId: string, classId: string, termNumber: 1 | 2 | 3): Promise<GradeEntry[]> {
     const assessments = await db.assessments
-      .where('classId')
-      .equals(classId)
-      .and((a) => a.termNumber === termNumber)
+      .where('academicYearId')
+      .equals(academicYearId)
+      .and((a) => a.classId === classId && a.termNumber === termNumber)
       .toArray();
 
     if (assessments.length === 0) {

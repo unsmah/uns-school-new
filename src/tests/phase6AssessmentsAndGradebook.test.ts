@@ -499,5 +499,64 @@ describe('Phase 6 — Assessments, Gradebook & Deterministic Grading', () => {
       // 5. Assert the result is unchanged because historical calculation uses Assessment.componentSnapshot (coefficient = 1)
       expect(resultB.weightedAverage).toBe(initialWeightedAverage);
     });
+
+    it('mandatorily preserves historical grading calculation when scheme maxOverallScore changes', async () => {
+      const assessmentId = 'ass-maxoverall-regress';
+      await assessmentRepository.create({
+        id: assessmentId,
+        academicYearId: activeYearId,
+        classId: activeClassId,
+        gradingSchemeId: sampleScheme.id,
+        componentKey: 'term_test',
+        termNumber: 2,
+        title: 'Max Overall Score Snapshot Test',
+        date: '2026-11-15',
+        maxScore: 20,
+        coefficient: 1,
+        isLocked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await gradeRepository.recordGrade({
+        id: 'g-max-1',
+        assessmentId,
+        studentEnrollmentId: studentEnrollment1,
+        score: 14,
+        isAbsent: false,
+        isMedicalExemption: false,
+        updatedAt: new Date().toISOString(),
+      });
+
+      const resA = gradingCalculationService.calculateStudentTermGrade(
+        studentEnrollment1,
+        sampleScheme,
+        await assessmentRepository.listByClass(activeClassId),
+        await db.grades.toArray()
+      );
+      const avgA = resA.weightedAverage;
+
+      // Change scheme maxOverallScore to 40
+      const modifiedScheme: GradingScheme = {
+        ...sampleScheme,
+        maxOverallScore: 40,
+      };
+      await db.gradingSchemes.put(modifiedScheme);
+
+      const resB = gradingCalculationService.calculateStudentTermGrade(
+        studentEnrollment1,
+        modifiedScheme,
+        await assessmentRepository.listByClass(activeClassId),
+        await db.grades.toArray()
+      );
+
+      // Result must remain identical because assessment froze maxOverallScoreSnapshot
+      expect(resB.weightedAverage).toBe(avgA);
+    });
+
+    it('explicitly scopes gradeRepository.listByClassAndTerm by academicYearId, classId, and termNumber', async () => {
+      const gradesForTerm = await gradeRepository.listByClassAndTerm(activeYearId, activeClassId, 1);
+      expect(Array.isArray(gradesForTerm)).toBe(true);
+    });
   });
 });

@@ -155,7 +155,8 @@ export const gradingCalculationService = {
       };
 
       if (finalComponentScore !== null && !isMedicalExemption) {
-        weightedSum += (finalComponentScore / effectiveMaxScore) * scheme.maxOverallScore * effectiveCoefficient;
+        const effectiveMaxOverallScore = matchingAssessments[0]?.maxOverallScoreSnapshot ?? scheme.maxOverallScore;
+        weightedSum += (finalComponentScore / effectiveMaxScore) * effectiveMaxOverallScore * effectiveCoefficient;
         totalCoefficients += effectiveCoefficient;
       }
     }
