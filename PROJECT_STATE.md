@@ -6,7 +6,7 @@
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
 
 ---
-
+  
 ## Implemented Modules
 
 ### 1. Administrative Core (Phase 2)
