@@ -205,14 +205,15 @@ export const assessmentRepository = {
           }
         }
 
-        // Check if updating maxScore would invalidate existing recorded grades
-        if (updates.maxScore !== undefined && updates.maxScore < existing.maxScore) {
-          const grades = await db.grades.where('assessmentId').equals(id).toArray();
-          const violatingGrade = grades.find((g) => g.score !== null && g.score > updates.maxScore!);
-          if (violatingGrade) {
-            throw new Error(
-              `Cannot reduce maximum score to ${updates.maxScore}: student has recorded grade of ${violatingGrade.score}.`
-            );
+        const isChangingMaxScore = updates.maxScore !== undefined && updates.maxScore !== existing.maxScore;
+        const isChangingCoefficient = updates.coefficient !== undefined && updates.coefficient !== existing.coefficient;
+        const isChangingComponentKey = updates.componentKey !== undefined && updates.componentKey !== existing.componentKey;
+        const isChangingTermNumber = updates.termNumber !== undefined && updates.termNumber !== existing.termNumber;
+
+        if (isChangingMaxScore || isChangingCoefficient || isChangingComponentKey || isChangingTermNumber) {
+          const gradeCount = await db.grades.where('assessmentId').equals(id).count();
+          if (gradeCount > 0) {
+            throw new Error('Cannot change grading-defining fields (maxScore, coefficient, componentKey, termNumber) for an assessment with existing grades.');
           }
         }
 
@@ -220,6 +221,10 @@ export const assessmentRepository = {
         if (trimmedUpdates.title) {
           trimmedUpdates.title = trimmedUpdates.title.trim();
         }
+
+        // Strictly prevent overwriting frozen snapshots via ordinary update payloads
+        delete trimmedUpdates.componentSnapshot;
+        delete trimmedUpdates.maxOverallScoreSnapshot;
 
         await db.assessments.update(id, {
           ...trimmedUpdates,

@@ -558,5 +558,70 @@ describe('Phase 6 — Assessments, Gradebook & Deterministic Grading', () => {
       const gradesForTerm = await gradeRepository.listByClassAndTerm(activeYearId, activeClassId, 1);
       expect(Array.isArray(gradesForTerm)).toBe(true);
     });
+
+    it('prevents modification of grading-defining fields if the assessment has grades', async () => {
+      const assessmentId = 'ass-freeze-test';
+      await assessmentRepository.create({
+        id: assessmentId,
+        academicYearId: activeYearId,
+        classId: activeClassId,
+        gradingSchemeId: sampleScheme.id,
+        componentKey: 'continuous_assessment',
+        termNumber: 1,
+        title: 'Freeze Test Assessment',
+        date: '2026-10-01',
+        maxScore: 10,
+        coefficient: 2,
+        isLocked: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      await gradeRepository.recordGrade({
+        id: 'g-freeze-1',
+        assessmentId,
+        studentEnrollmentId: studentEnrollment1,
+        score: 8,
+        isAbsent: false,
+        isMedicalExemption: false,
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Attempt to change grading-defining fields should fail
+      await expect(assessmentRepository.update(assessmentId, { maxScore: 20 })).rejects.toThrow('Cannot change grading-defining fields');
+      await expect(assessmentRepository.update(assessmentId, { coefficient: 3 })).rejects.toThrow('Cannot change grading-defining fields');
+      await expect(assessmentRepository.update(assessmentId, { componentKey: 'term_test' })).rejects.toThrow('Cannot change grading-defining fields');
+      await expect(assessmentRepository.update(assessmentId, { termNumber: 2 })).rejects.toThrow('Cannot change grading-defining fields');
+      await expect(assessmentRepository.update(assessmentId, { gradingSchemeId: 'some-other-scheme' })).rejects.toThrow('Cannot change class, academic year, or grading scheme');
+
+      // Attempt to overwrite snapshots should be silently ignored (they should remain identical)
+      const fakeSnapshot = {
+        componentKey: 'fake',
+        label: 'Fake',
+        coefficient: 99,
+        maxScore: 100,
+        isMandatory: true,
+      };
+      await assessmentRepository.update(assessmentId, {
+        title: 'Updated Title', // Allowed
+        componentSnapshot: fakeSnapshot,
+        maxOverallScoreSnapshot: 100
+      });
+
+      const updated = await db.assessments.get(assessmentId);
+      expect(updated?.title).toBe('Updated Title');
+      expect(updated?.componentSnapshot?.coefficient).not.toBe(99);
+      expect(updated?.maxOverallScoreSnapshot).not.toBe(100);
+      
+      // Calculate grade to ensure invariance
+      const res = gradingCalculationService.calculateStudentTermGrade(
+        studentEnrollment1,
+        sampleScheme,
+        await assessmentRepository.listByClass(activeClassId),
+        await db.grades.toArray()
+      );
+      
+      expect(res.weightedAverage).toBeDefined();
+    });
   });
 });
