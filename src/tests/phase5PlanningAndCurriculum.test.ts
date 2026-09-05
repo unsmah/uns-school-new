@@ -695,8 +695,145 @@ describe('Phase 5: Planning & Curriculum Architecture', () => {
       expect(overview.totalRecordedLessons).toBe(0);
       expect(overview.totalCompletedLessons).toBe(0);
       expect(overview.overallProgressPercentage).toBe(0);
+      expect(overview.isPlannedTargetConfigured).toBe(true);
       expect(overview.sequencesMetrics[0].completionPercentage).toBe(0);
       expect(overview.sequencesMetrics[0].remainingSessionsCount).toBe(12);
+    });
+
+    it('does NOT invent planning values when plannedSessionsCount is missing or zero', () => {
+      const unconfiguredSequence: CurriculumSequence = {
+        id: 'seq-unconfigured',
+        curriculumVersionId: testActiveCurrId,
+        levelCode: '1MS',
+        sequenceNumber: 1,
+        title: 'Sequence Without Target',
+        targetedCompetencyIds: [],
+        plannedSessionsCount: 0, // Unconfigured
+        order: 1,
+      };
+
+      const lessons: Lesson[] = [
+        createTestLesson({
+          id: 'l-unconfigured-1',
+          academicYearId: testYear1Id,
+          classId: testClass1Id,
+          curriculumVersionId: testActiveCurrId,
+          sequenceId: 'seq-unconfigured',
+          title: 'Lesson 1',
+          isCompleted: true,
+        }),
+      ];
+
+      const metric = computeSequenceProgress(unconfiguredSequence, lessons);
+
+      expect(metric.isPlannedTargetConfigured).toBe(false);
+      expect(metric.plannedSessionsCount).toBeNull();
+      expect(metric.remainingSessionsCount).toBeNull();
+      expect(metric.completionPercentage).toBeNull();
+      expect(metric.completedLessonsCount).toBe(1);
+      expect(metric.recordedLessonsCount).toBe(1);
+
+      const overview = computeClassPlanningOverview({
+        classId: testClass1Id,
+        academicYearId: testYear1Id,
+        levelCode: '1MS',
+        sequences: [unconfiguredSequence],
+        lessons,
+      });
+
+      expect(overview.isPlannedTargetConfigured).toBe(false);
+      expect(overview.totalPlannedSessions).toBe(0);
+      expect(overview.overallProgressPercentage).toBeNull();
+      expect(overview.totalRecordedLessons).toBe(1);
+      expect(overview.totalCompletedLessons).toBe(1);
+    });
+
+    it('strictly avoids false-positive conflation of similar objective descriptions', () => {
+      const objectives: LearningObjectiveDefinition[] = [
+        {
+          id: 'obj-base',
+          sequenceId: 'seq-1',
+          curriculumVersionId: testActiveCurrId,
+          type: 'Linguistic',
+          description: 'Use the verb to be in simple present',
+          order: 1,
+        },
+        {
+          id: 'obj-negative',
+          sequenceId: 'seq-1',
+          curriculumVersionId: testActiveCurrId,
+          type: 'Linguistic',
+          description: 'Use the verb to be in simple present negative form',
+          order: 2,
+        },
+        {
+          id: 'obj-questions',
+          sequenceId: 'seq-1',
+          curriculumVersionId: testActiveCurrId,
+          type: 'Linguistic',
+          description: 'Use the verb to be in simple present questions',
+          order: 3,
+        },
+      ];
+
+      // Lesson specifically targets only the negative form
+      const lessons: Lesson[] = [
+        createTestLesson({
+          id: 'l-neg',
+          academicYearId: testYear1Id,
+          classId: testClass1Id,
+          sequenceId: 'seq-1',
+          specificObjectives: ['Use the verb to be in simple present negative form.'],
+          isCompleted: true,
+        }),
+      ];
+
+      const coverage = computeObjectiveCoverage(objectives, lessons);
+
+      // obj-negative must match
+      expect(coverage.find((c) => c.objective.id === 'obj-negative')?.addressedInLessonsCount).toBe(1);
+      // obj-base must NOT match (even though obj-base string is a substring of obj-negative)
+      expect(coverage.find((c) => c.objective.id === 'obj-base')?.addressedInLessonsCount).toBe(0);
+      // obj-questions must NOT match
+      expect(coverage.find((c) => c.objective.id === 'obj-questions')?.addressedInLessonsCount).toBe(0);
+    });
+
+    it('strictly rejects objective matching across sequence boundaries', () => {
+      const objectives: LearningObjectiveDefinition[] = [
+        {
+          id: 'obj-seq1',
+          sequenceId: 'seq-1',
+          curriculumVersionId: testActiveCurrId,
+          type: 'Communicative',
+          description: 'Introduce family members',
+          order: 1,
+        },
+        {
+          id: 'obj-seq2',
+          sequenceId: 'seq-2',
+          curriculumVersionId: testActiveCurrId,
+          type: 'Communicative',
+          description: 'Introduce family members',
+          order: 1,
+        },
+      ];
+
+      // Lesson belongs to Sequence 2
+      const lessons: Lesson[] = [
+        createTestLesson({
+          id: 'l-seq2',
+          academicYearId: testYear1Id,
+          classId: testClass1Id,
+          sequenceId: 'seq-2',
+          specificObjectives: ['Introduce family members'],
+          isCompleted: true,
+        }),
+      ];
+
+      const coverage = computeObjectiveCoverage(objectives, lessons);
+
+      expect(coverage.find((c) => c.objective.id === 'obj-seq1')?.addressedInLessonsCount).toBe(0);
+      expect(coverage.find((c) => c.objective.id === 'obj-seq2')?.addressedInLessonsCount).toBe(1);
     });
   });
 });

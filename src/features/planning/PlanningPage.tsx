@@ -310,7 +310,9 @@ export const PlanningPage: React.FC = () => {
                     {classOverview.totalCompletedLessons}
                   </span>
                   <span className="text-xs text-slate-500">
-                    / {classOverview.totalPlannedSessions} planned sessions
+                    {classOverview.isPlannedTargetConfigured
+                      ? `/ ${classOverview.totalPlannedSessions} planned sessions`
+                      : 'completed (target unconfigured)'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -324,24 +326,34 @@ export const PlanningPage: React.FC = () => {
                   <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                     Syllabus Coverage Progress
                   </span>
-                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                    {classOverview.overallProgressPercentage}% Complete
-                  </span>
+                  {classOverview.overallProgressPercentage !== null ? (
+                    <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      {classOverview.overallProgressPercentage}% Complete
+                    </span>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-400">
+                      Target Unconfigured
+                    </span>
+                  )}
                 </div>
 
                 {/* Progress Bar */}
                 <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-3 overflow-hidden">
                   <div
                     className="bg-emerald-600 dark:bg-emerald-500 h-3 rounded-full transition-all duration-300"
-                    style={{ width: `${classOverview.overallProgressPercentage}%` }}
+                    style={{ width: `${classOverview.overallProgressPercentage ?? 0}%` }}
                   />
                 </div>
 
                 <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1">
-                  <span>{sequences.length} Sequences Planned</span>
-                  <span>
-                    {Math.max(0, classOverview.totalPlannedSessions - classOverview.totalCompletedLessons)} Sessions Remaining
-                  </span>
+                  <span>{sequences.length} Sequences</span>
+                  {classOverview.isPlannedTargetConfigured ? (
+                    <span>
+                      {Math.max(0, classOverview.totalPlannedSessions - classOverview.totalCompletedLessons)} Sessions Remaining
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 italic">No session targets defined</span>
+                  )}
                 </div>
               </Card>
             </div>
@@ -422,7 +434,9 @@ export const PlanningPage: React.FC = () => {
                                 {seq.title}
                               </h3>
                               <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
-                                {seqMetric.completedLessonsCount} / {seqMetric.plannedSessionsCount} completed
+                                {seqMetric.isPlannedTargetConfigured
+                                  ? `${seqMetric.completedLessonsCount} / ${seqMetric.plannedSessionsCount} completed`
+                                  : `${seqMetric.completedLessonsCount} completed (target unconfigured)`}
                               </span>
                             </div>
 
@@ -437,18 +451,24 @@ export const PlanningPage: React.FC = () => {
 
                         {/* Progress Meter & Actions */}
                         <div className="flex items-center gap-4 shrink-0">
-                          <div className="w-32 hidden sm:block text-right">
-                            <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                              <span>Progress</span>
-                              <span>{seqMetric.completionPercentage}%</span>
+                          {seqMetric.isPlannedTargetConfigured ? (
+                            <div className="w-32 hidden sm:block text-right">
+                              <div className="flex justify-between text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                                <span>Progress</span>
+                                <span>{seqMetric.completionPercentage}%</span>
+                              </div>
+                              <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+                                <div
+                                  className="bg-emerald-600 dark:bg-emerald-500 h-2 rounded-full transition-all"
+                                  style={{ width: `${seqMetric.completionPercentage}%` }}
+                                />
+                              </div>
                             </div>
-                            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                              <div
-                                className="bg-emerald-600 dark:bg-emerald-500 h-2 rounded-full transition-all"
-                                style={{ width: `${seqMetric.completionPercentage}%` }}
-                              />
+                          ) : (
+                            <div className="w-32 hidden sm:block text-right text-[11px] text-slate-400 italic">
+                              Target unconfigured
                             </div>
-                          </div>
+                          )}
 
                           {!isArchived && (
                             <Button

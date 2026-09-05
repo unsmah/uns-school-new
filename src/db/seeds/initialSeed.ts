@@ -38,12 +38,12 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
       async () => {
         const officialVersion: CurriculumVersion = {
           id: 'curr-dz-ms-en-gen2',
-          code: 'DZ-MS-EN-2016',
-          title: 'Algerian Middle School English Curriculum (2nd Generation)',
-          description: 'Official national competency-based curriculum for English language teaching in Algerian middle schools (1AM to 4AM).',
+          code: 'SAMPLE-DZ-MS-EN',
+          title: 'Middle School English Curriculum (Demonstration / Sample Data)',
+          description: 'Example structured pedagogical sequence and competency framework for demonstration purposes in Algerian middle schools (1AM to 4AM). Non-authoritative reference data.',
           status: 'active',
-          isOfficial: true,
-          sourceDocumentReference: 'Ministère de l’Éducation Nationale — Direction Générale des Enseignements (Curriculum 2016)',
+          isOfficial: false,
+          sourceDocumentReference: 'Demonstration / Sample Curriculum Schema (Pending Official Syllabus Verification)',
           createdAt: now,
           updatedAt: now,
         };
