@@ -135,6 +135,68 @@ describe('Phase 7 - Workflow Extras & Teacher Productivity', () => {
       };
       await expect(homeworkRepository.save(task)).rejects.toThrow(/archived/);
     });
+
+    it('prevents changing academicYearId or classId of an existing homework task', async () => {
+      const task: HomeworkTask = {
+        id: 'hw-immutable',
+        academicYearId: year.id,
+        classId: cls.id,
+        title: 'Immutable test',
+        instructions: '',
+        assignedDate: '2023-10-01',
+        dueDate: '2023-10-05',
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await homeworkRepository.save(task);
+
+      const year2: AcademicYear = {
+        id: 'year-2',
+        schoolId: 'school-1',
+        startDate: '2024-09-01',
+        endDate: '2025-07-01',
+        label: '2024-2025',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(year2);
+
+      const cls2: SchoolClass = {
+        id: 'class-hw-2',
+        academicYearId: 'year-2',
+        schoolId: 'school-1',
+        name: '2AM-1',
+        levelCode: '2AM',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await classRepository.create(cls2);
+
+      // To bypass the "Class does not belong to academic year" error, we must supply a valid class for the new year.
+      const modifiedTask1 = { ...task, academicYearId: 'year-2', classId: 'class-hw-2' };
+      await expect(homeworkRepository.save(modifiedTask1)).rejects.toThrow(/Cannot change academic year/);
+
+      // We need another class in year-1 to test changing class without changing year.
+      const cls3: SchoolClass = {
+        id: 'class-3',
+        academicYearId: 'year-1',
+        schoolId: 'school-1',
+        name: '1AM-2',
+        levelCode: '1AM',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await classRepository.create(cls3);
+
+      const modifiedTask2 = { ...task, classId: 'class-3' };
+      await expect(homeworkRepository.save(modifiedTask2)).rejects.toThrow(/Cannot change class/);
+    });
   });
 
   describe('Student Observations', () => {
@@ -174,6 +236,30 @@ describe('Phase 7 - Workflow Extras & Teacher Productivity', () => {
       };
       await expect(observationRepository.create(obs)).rejects.toThrow(/archived/);
     });
+
+    it('rejects creation if observation academicYear, class, or person does not match enrollment', async () => {
+      const baseObs: StudentObservation = {
+        id: 'obs-mismatch',
+        academicYearId: year.id,
+        classId: cls.id,
+        studentEnrollmentId: enrollment.id,
+        studentPersonId: person.id,
+        date: '2023-10-10',
+        category: 'Participation',
+        content: 'Test',
+        isPrivateToTeacher: true,
+        createdAt: new Date().toISOString(),
+      };
+
+      await expect(observationRepository.create({ ...baseObs, academicYearId: 'other-year' }))
+        .rejects.toThrow(/Observation academic year must match/);
+      
+      await expect(observationRepository.create({ ...baseObs, classId: 'other-class' }))
+        .rejects.toThrow(/Observation class must match/);
+        
+      await expect(observationRepository.create({ ...baseObs, studentPersonId: 'other-person' }))
+        .rejects.toThrow(/Observation student person must match/);
+    });
   });
 
   describe('Remediation Sessions', () => {
@@ -195,6 +281,63 @@ describe('Phase 7 - Workflow Extras & Teacher Productivity', () => {
       const saved = await remediationRepository.getById('rem-1');
       expect(saved).toBeDefined();
       expect(saved?.targetedStudentEnrollmentIds).toContain(enrollment.id);
+    });
+
+    it('rejects remediation session if targeted enrollments do not match class or year', async () => {
+      // Create a student in a different class
+      const cls2: SchoolClass = {
+        id: 'class-2',
+        academicYearId: 'year-1',
+        schoolId: 'school-1',
+        name: '2AM-1',
+        levelCode: '2AM',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await classRepository.create(cls2);
+
+      const person2: StudentPerson = {
+        id: 'person-2',
+        nationalIdNumber: '987654321',
+        firstNameLatin: 'Test2',
+        lastNameLatin: 'User2',
+        firstNameArabic: 'اختبار٢',
+        lastNameArabic: 'مستخدم٢',
+        dateOfBirth: '2010-01-01',
+        gender: 'F',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(person2);
+
+      const enrollment2: StudentEnrollment = {
+        id: 'enroll-2',
+        studentPersonId: 'person-2',
+        academicYearId: 'year-1',
+        classId: 'class-2',
+        registerNumber: 2,
+        isRepeating: false,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentEnrollmentRepository.create(enrollment2);
+
+      const sess: RemediationSession = {
+        id: 'rem-invalid',
+        academicYearId: year.id,
+        classId: cls.id, // Targeting class-1
+        scheduledDate: '2023-11-01',
+        identifiedPedagogicalWeakness: 'Test',
+        remedialActivitiesDescription: 'Test',
+        targetedStudentEnrollmentIds: [enrollment2.id], // But student is in class-2
+        isCompleted: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await expect(remediationRepository.save(sess)).rejects.toThrow(/does not match remediation class/);
     });
   });
 });

@@ -11,8 +11,13 @@ export const observationRepository = {
     return await db.observations.where('studentEnrollmentId').equals(studentEnrollmentId).reverse().sortBy('date');
   },
 
-  async listByClass(classId: string): Promise<StudentObservation[]> {
-    return await db.observations.where('classId').equals(classId).reverse().sortBy('date');
+  async listByClassAndAcademicYear(classId: string, academicYearId: string): Promise<StudentObservation[]> {
+    return await db.observations
+      .where('classId')
+      .equals(classId)
+      .and((o) => o.academicYearId === academicYearId)
+      .reverse()
+      .sortBy('date');
   },
 
   async create(observation: StudentObservation): Promise<string> {
@@ -23,14 +28,26 @@ export const observationRepository = {
         throw new Error(`Student enrollment with id ${observation.studentEnrollmentId} does not exist.`);
       }
 
-      const year = await db.academicYears.get(enrollment.academicYearId);
-      if (year?.isArchived) {
+      if (observation.academicYearId !== enrollment.academicYearId) {
+        throw new Error('Observation academic year must match student enrollment academic year.');
+      }
+      if (observation.classId !== enrollment.classId) {
+        throw new Error('Observation class must match student enrollment class.');
+      }
+      if (observation.studentPersonId !== enrollment.studentPersonId) {
+        throw new Error('Observation student person must match student enrollment person.');
+      }
+
+      const year = await db.academicYears.get(observation.academicYearId);
+      if (!year) {
+        throw new Error(`Academic year with id ${observation.academicYearId} does not exist.`);
+      }
+      if (year.isArchived) {
         throw new Error('Cannot add observations in an archived academic year.');
       }
 
       await db.observations.add({
         ...observation,
-        classId: enrollment.classId,
         createdAt: observation.createdAt || now,
       });
       return observation.id;

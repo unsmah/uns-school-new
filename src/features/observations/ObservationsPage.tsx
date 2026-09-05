@@ -37,7 +37,7 @@ export const ObservationsPage: React.FC = () => {
     }
     
     if (classFilter) {
-      const obs = await observationRepository.listByClass(classFilter);
+      const obs = await observationRepository.listByClassAndAcademicYear(classFilter, selectedAcademicYear.id);
       setObservations(obs);
       
       const enrolls = await studentEnrollmentRepository.listByClass(classFilter);

@@ -84,6 +84,15 @@ export const homeworkRepository = {
 
       const existing = await db.homework.get(task.id);
       if (existing) {
+        if (existing.academicYearId !== task.academicYearId) {
+          throw new Error('Cannot change academic year of an existing homework task.');
+        }
+        if (existing.classId !== task.classId) {
+          throw new Error('Cannot change class of an existing homework task.');
+        }
+        if (existing.lessonId !== task.lessonId) {
+          throw new Error('Cannot change lesson of an existing homework task.');
+        }
         await db.homework.put({ ...task, updatedAt: now });
       } else {
         await db.homework.add({
