@@ -122,7 +122,7 @@ describe('Academic Year Invariants & Historical Protection', () => {
     expect(currentB?.isCurrent).toBe(true);
   });
 
-  it('correctly handles moving a current year between schools (Test A)', async () => {
+  it('prohibits moving an academic year between schools via update (Test A)', async () => {
     const schoolA = 'school-move-a';
     const schoolB = 'school-move-b';
     await db.schools.bulkAdd([
@@ -144,54 +144,14 @@ describe('Academic Year Invariants & Historical Protection', () => {
     };
     await academicYearRepository.create(yearA);
 
-    const yearB: AcademicYear = {
-      id: 'year-move-b',
-      schoolId: schoolB,
-      label: '2026-2027',
-      startDate: '2026-09-01',
-      endDate: '2027-06-30',
-      isCurrent: true,
-      isArchived: false,
-      terms: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    await academicYearRepository.create(yearB);
-
-    // Initial state: both schools have their own current year
-    expect((await academicYearRepository.getCurrent(schoolA))?.id).toBe('year-move-a');
-    expect((await academicYearRepository.getCurrent(schoolB))?.id).toBe('year-move-b');
-
-    // Move current Year A to School B without explicitly specifying isCurrent
-    await academicYearRepository.update(yearA.id, { schoolId: schoolB });
+    // Moving Year A to School B must be rejected to maintain school ownership invariant
+    await expect(
+      academicYearRepository.update(yearA.id, { schoolId: schoolB })
+    ).rejects.toThrow(/Academic year schoolId cannot be changed after creation/i);
 
     const reloadedYearA = await academicYearRepository.getById(yearA.id);
-    const reloadedYearB = await academicYearRepository.getById(yearB.id);
-
-    // Year A remains current
+    expect(reloadedYearA?.schoolId).toBe(schoolA);
     expect(reloadedYearA?.isCurrent).toBe(true);
-    expect(reloadedYearA?.schoolId).toBe(schoolB);
-
-    // Year B becomes non-current
-    expect(reloadedYearB?.isCurrent).toBe(false);
-
-    // School B has exactly one current year
-    const currentYearsInSchoolB = await db.academicYears
-      .where('schoolId')
-      .equals(schoolB)
-      .and((y) => Boolean(y.isCurrent))
-      .toArray();
-    expect(currentYearsInSchoolB).toHaveLength(1);
-    expect(currentYearsInSchoolB[0].id).toBe(yearA.id);
-
-    // School A has zero current years
-    const currentYearsInSchoolA = await db.academicYears
-      .where('schoolId')
-      .equals(schoolA)
-      .and((y) => Boolean(y.isCurrent))
-      .toArray();
-    expect(currentYearsInSchoolA).toHaveLength(0);
-    expect(await academicYearRepository.getCurrent(schoolA)).toBeUndefined();
   });
 
   it('guarantees no school can have two current years after create or update (Test C)', async () => {

@@ -69,8 +69,14 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - **Invariants**:
   - A student person can have at most **one active enrollment** per academic year.
   - The register number (`registerNumber`) is strictly unique within an individual class roster.
+  - **`StudentEnrollment.academicYearId` Immutability**: `academicYearId` cannot be mutated on an existing enrollment record. Progression/promotion to a new academic year creates a distinct new `StudentEnrollment`, permanently preserving the historical enrollment record.
 
-### 3.3. Authoritative Lesson Session Model
+### 3.3. Academic Year & School Ownership Invariants
+- **`AcademicYear.schoolId` Immutability**: Once created, an `AcademicYear` belongs permanently to its `School`. Modifying `schoolId` on an existing academic year is rejected at the repository level.
+- **Archived Academic Year Read-Only Protection**: Once `isArchived: true`, an academic year cannot be modified through ordinary updates (including changes to labels, dates, or current flags). Editability can only be restored through the explicit `unarchive()` repository method.
+- **Class Academic Year & School Immutability**: Classes permanently belong to their assigned academic year and school; `academicYearId` and `schoolId` cannot be mutated after creation.
+
+### 3.4. Authoritative Lesson Session Model
 - A **`Lesson`** record is the single source of truth for pedagogical execution.
 - **`Cahier Journal`** (daily log across all classes) and **`Cahier de Textes`** (chronological class log) are **derived projections** generated directly from `Lesson` records. They do not store redundant duplicate content.
 - **Attendance Anchoring**: `AttendanceRecord` is anchored to a `Lesson`. The date of an attendance record is synchronized to the lesson date. When a lesson is deleted, linked attendance records are purged atomically in a Dexie transaction.

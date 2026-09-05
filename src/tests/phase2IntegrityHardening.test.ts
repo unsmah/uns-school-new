@@ -543,4 +543,328 @@ describe('Phase 2 Integrity Hardening & Domain Invariant Tests', () => {
       ).rejects.toThrow(/Cannot enroll students in an archived class/i);
     });
   });
+
+  describe('Fix #11 — AcademicYear.schoolId Immutability & Archived Read-Only Hardening', () => {
+    it('A. schoolId cannot change: rejects updating schoolId to another school and preserves original schoolId', async () => {
+      const yearA: AcademicYear = {
+        id: 'year-school-a-test',
+        schoolId,
+        label: '2025-2026 A',
+        startDate: '2025-09-01',
+        endDate: '2026-06-30',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearA);
+
+      // Attempt to mutate schoolId to otherSchoolId
+      await expect(
+        academicYearRepository.update(yearA.id, { schoolId: otherSchoolId })
+      ).rejects.toThrow(/Academic year schoolId cannot be changed after creation/i);
+
+      // Verify the stored record still belongs to School A
+      const storedYear = await academicYearRepository.getById(yearA.id);
+      expect(storedYear?.schoolId).toBe(schoolId);
+    });
+
+    it('B. archived year cannot be modified: ordinary update() rejects label, dates, schoolId, isCurrent, isArchived', async () => {
+      const yearToArchive: AcademicYear = {
+        id: 'year-to-be-archived',
+        schoolId,
+        label: '2024-2025 History',
+        startDate: '2024-09-01',
+        endDate: '2025-06-30',
+        isCurrent: true,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearToArchive);
+
+      // Archive it
+      await academicYearRepository.archive(yearToArchive.id);
+
+      // Verify status
+      const archived = await academicYearRepository.getById(yearToArchive.id);
+      expect(archived?.isArchived).toBe(true);
+      expect(archived?.isCurrent).toBe(false);
+
+      // Attempt to update label
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { label: 'Mutated Label' })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Attempt to update startDate
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { startDate: '2024-10-01' })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Attempt to update endDate
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { endDate: '2025-07-31' })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Attempt to update schoolId
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { schoolId: otherSchoolId })
+      ).rejects.toThrow(/Academic year schoolId cannot be changed after creation/i);
+
+      // Attempt to update isCurrent
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { isCurrent: true })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Attempt to bypass by passing isArchived: true in update payload
+      await expect(
+        academicYearRepository.update(yearToArchive.id, { label: 'Bypass attempt', isArchived: true })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Verify the stored record remains unchanged
+      const finalStored = await academicYearRepository.getById(yearToArchive.id);
+      expect(finalStored?.label).toBe('2024-2025 History');
+      expect(finalStored?.startDate).toBe('2024-09-01');
+      expect(finalStored?.endDate).toBe('2025-06-30');
+      expect(finalStored?.schoolId).toBe(schoolId);
+      expect(finalStored?.isCurrent).toBe(false);
+      expect(finalStored?.isArchived).toBe(true);
+    });
+
+    it('C. explicit unarchive works: unarchive(id) restores editability', async () => {
+      const yearToUnarchive: AcademicYear = {
+        id: 'year-unarchive-test',
+        schoolId,
+        label: '2023-2024 Temp',
+        startDate: '2023-09-01',
+        endDate: '2024-06-30',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearToUnarchive);
+      await academicYearRepository.archive(yearToUnarchive.id);
+
+      // Confirm ordinary update is rejected
+      await expect(
+        academicYearRepository.update(yearToUnarchive.id, { label: 'Cannot change while archived' })
+      ).rejects.toThrow(/Archived academic years are read-only/i);
+
+      // Call unarchive
+      await academicYearRepository.unarchive(yearToUnarchive.id);
+
+      // Confirm normal update is allowed again
+      await academicYearRepository.update(yearToUnarchive.id, { label: '2023-2024 Restored' });
+      const updated = await academicYearRepository.getById(yearToUnarchive.id);
+      expect(updated?.label).toBe('2023-2024 Restored');
+      expect(updated?.isArchived).toBe(false);
+    });
+
+    it('D. archive behavior remains correct: sets isArchived=true and isCurrent=false', async () => {
+      const yearCurrent: AcademicYear = {
+        id: 'year-curr-test',
+        schoolId,
+        label: '2025-2026 Current',
+        startDate: '2025-09-01',
+        endDate: '2026-06-30',
+        isCurrent: true,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearCurrent);
+
+      await academicYearRepository.archive(yearCurrent.id);
+      const archived = await academicYearRepository.getById(yearCurrent.id);
+      expect(archived?.isArchived).toBe(true);
+      expect(archived?.isCurrent).toBe(false);
+    });
+  });
+
+  describe('Fix #12 — StudentEnrollment.academicYearId Immutability & Multi-Year Preservation', () => {
+    it('A. academicYearId cannot change: rejects mutating enrollment academicYearId via update', async () => {
+      const yearA: AcademicYear = {
+        id: 'year-enr-a',
+        schoolId,
+        label: '2025-2026',
+        startDate: '2025-09-01',
+        endDate: '2026-06-30',
+        isCurrent: true,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const yearB: AcademicYear = {
+        id: 'year-enr-b',
+        schoolId,
+        label: '2026-2027',
+        startDate: '2026-09-01',
+        endDate: '2027-06-30',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearA);
+      await academicYearRepository.create(yearB);
+
+      const classA: SchoolClass = {
+        id: 'class-enr-a',
+        schoolId,
+        academicYearId: yearA.id,
+        levelCode: '1MS',
+        name: '1MS 1',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await classRepository.create(classA);
+
+      const person: StudentPerson = {
+        id: 'student-enr-immut-1',
+        firstNameLatin: 'Walid',
+        lastNameLatin: 'Mesbah',
+        gender: 'M',
+        dateOfBirth: '2012-04-05',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(person);
+
+      const enrollmentAId = await studentEnrollmentRepository.enroll({
+        id: 'enr-walid-year-a',
+        studentPersonId: person.id,
+        academicYearId: yearA.id,
+        classId: classA.id,
+        registerNumber: 1,
+        isRepeating: false,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Attempt to update enrollment to Year B
+      await expect(
+        studentEnrollmentRepository.update(enrollmentAId, { academicYearId: yearB.id })
+      ).rejects.toThrow(/Enrollment academicYearId cannot be changed after creation/i);
+
+      // Verify original enrollment still belongs to Year A
+      const storedEnr = await studentEnrollmentRepository.getById(enrollmentAId);
+      expect(storedEnr?.academicYearId).toBe(yearA.id);
+      expect(storedEnr?.classId).toBe(classA.id);
+    });
+
+    it('B. promotion/history principle: permits creating separate new enrollment for next year while preserving historical enrollment intact', async () => {
+      const yearA: AcademicYear = {
+        id: 'year-promo-a',
+        schoolId,
+        label: '2025-2026',
+        startDate: '2025-09-01',
+        endDate: '2026-06-30',
+        isCurrent: false,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const yearB: AcademicYear = {
+        id: 'year-promo-b',
+        schoolId,
+        label: '2026-2027',
+        startDate: '2026-09-01',
+        endDate: '2027-06-30',
+        isCurrent: true,
+        isArchived: false,
+        terms: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await academicYearRepository.create(yearA);
+      await academicYearRepository.create(yearB);
+
+      const classA: SchoolClass = {
+        id: 'class-promo-1ms',
+        schoolId,
+        academicYearId: yearA.id,
+        levelCode: '1MS',
+        name: '1MS 1',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const classB: SchoolClass = {
+        id: 'class-promo-2ms',
+        schoolId,
+        academicYearId: yearB.id,
+        levelCode: '2MS',
+        name: '2MS 1',
+        isArchived: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await classRepository.create(classA);
+      await classRepository.create(classB);
+
+      const student: StudentPerson = {
+        id: 'student-promo-target',
+        firstNameLatin: 'Lina',
+        lastNameLatin: 'Haddad',
+        gender: 'F',
+        dateOfBirth: '2012-08-20',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await studentPersonRepository.create(student);
+
+      // Create enrollment in Year A (1MS)
+      const enrAId = await studentEnrollmentRepository.enroll({
+        id: 'enr-lina-year-a',
+        studentPersonId: student.id,
+        academicYearId: yearA.id,
+        classId: classA.id,
+        registerNumber: 5,
+        isRepeating: false,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Promote to Year B (2MS) by creating new separate enrollment
+      const enrBId = await studentEnrollmentRepository.enroll({
+        id: 'enr-lina-year-b',
+        studentPersonId: student.id,
+        academicYearId: yearB.id,
+        classId: classB.id,
+        registerNumber: 2,
+        isRepeating: false,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      expect(enrAId).not.toBe(enrBId);
+
+      // Query all enrollments for student
+      const studentHistory = await studentEnrollmentRepository.listByStudent(student.id);
+      expect(studentHistory.length).toBe(2);
+
+      const enrA = studentHistory.find((e) => e.academicYearId === yearA.id);
+      const enrB = studentHistory.find((e) => e.academicYearId === yearB.id);
+
+      expect(enrA).toBeDefined();
+      expect(enrA?.classId).toBe(classA.id);
+      expect(enrA?.registerNumber).toBe(5);
+
+      expect(enrB).toBeDefined();
+      expect(enrB?.classId).toBe(classB.id);
+      expect(enrB?.registerNumber).toBe(2);
+    });
+  });
 });

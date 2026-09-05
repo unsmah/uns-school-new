@@ -63,22 +63,18 @@ export const academicYearRepository = {
         throw new Error(`Academic year with id ${id} not found.`);
       }
 
-      if (updates.schoolId) {
-        const school = await db.schools.get(updates.schoolId);
-        if (!school) {
-          throw new Error(`School with id ${updates.schoolId} not found.`);
-        }
+      // Invariant: Once an AcademicYear exists, its schoolId is immutable
+      if (updates.schoolId !== undefined && updates.schoolId !== existing.schoolId) {
+        throw new Error('Academic year schoolId cannot be changed after creation.');
       }
 
-      if (existing.isArchived && !updates.isArchived) {
-        // Historical protection guard: Cannot modify archived year without explicit unarchive
-        if (updates.startDate || updates.endDate || updates.label || updates.schoolId || updates.isCurrent) {
-          throw new Error('Archived academic years are read-only. Unarchive first to make changes.');
-        }
+      // Invariant: Archived academic years are strictly read-only. Unarchive first to make changes.
+      if (existing.isArchived) {
+        throw new Error('Archived academic years are read-only. Unarchive first to make changes.');
       }
 
       const targetIsCurrent = updates.isCurrent !== undefined ? updates.isCurrent : existing.isCurrent;
-      const targetSchoolId = updates.schoolId !== undefined ? updates.schoolId : existing.schoolId;
+      const targetSchoolId = existing.schoolId;
 
       // Invariant: Each school may have at most ONE current academic year.
       // If the academic year is or remains current in the destination school, demote any other current year for that school.

@@ -42,5 +42,7 @@ Because IndexedDB does not have built-in foreign key constraints, all integrity 
 1. **Lesson -> Attendance Cascade**: Deleting a `Lesson` deletes all `attendance` records where `lessonId === lesson.id` inside a readwrite Dexie transaction.
 2. **Assessment -> Grade Cascade**: Deleting an `Assessment` deletes all `grades` records referencing that `assessmentId`.
 3. **Class Deletion Guard**: A `class` cannot be deleted if active `studentEnrollments` or `lessons` are attached. It must be archived (`isArchived: true`) instead.
-4. **Single Current Academic Year**: Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false`.
-5. **Class Register Number Uniqueness**: When enrolling or modifying a student, uniqueness of `registerNumber` within that `classId` is validated before insertion.
+4. **Single Current Academic Year**: Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false` for that school.
+5. **Academic Year Immutability & Protection**: `AcademicYear.schoolId` cannot be mutated after creation. Archived academic years are strictly read-only and reject updates until explicitly restored via `unarchive()`.
+6. **Class Academic Year & School Immutability**: `SchoolClass.academicYearId` and `SchoolClass.schoolId` are immutable after creation. Classes cannot be created in or modified in archived academic years.
+7. **Enrollment Immutability & Register Number Uniqueness**: `StudentEnrollment.academicYearId` is immutable (promotion requires a new enrollment). Uniqueness of `registerNumber` within `classId` and active enrollment per academic year are transactionally validated.

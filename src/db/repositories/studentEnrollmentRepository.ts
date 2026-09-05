@@ -131,15 +131,23 @@ export const studentEnrollmentRepository = {
         throw new Error('Cannot modify enrollment in an archived academic year.');
       }
 
-      const targetStudentPersonId = updates.studentPersonId ?? existing.studentPersonId;
-      const targetAcademicYearId = updates.academicYearId ?? existing.academicYearId;
+      // Invariant: Once a StudentEnrollment exists, its academicYearId is immutable
+      if (updates.academicYearId !== undefined && updates.academicYearId !== existing.academicYearId) {
+        throw new Error('Enrollment academicYearId cannot be changed after creation. Create a new enrollment for promotion.');
+      }
+
+      // Invariant: StudentPerson identity linked to an enrollment is immutable
+      if (updates.studentPersonId !== undefined && updates.studentPersonId !== existing.studentPersonId) {
+        throw new Error('Enrollment studentPersonId cannot be changed after creation.');
+      }
+
+      const targetStudentPersonId = existing.studentPersonId;
+      const targetAcademicYearId = existing.academicYearId;
       const targetClassId = updates.classId ?? existing.classId;
       const targetStatus = updates.status ?? existing.status;
       const targetRegisterNumber = updates.registerNumber ?? existing.registerNumber;
 
       const hasCriticalFieldInUpdates =
-        updates.studentPersonId !== undefined ||
-        updates.academicYearId !== undefined ||
         updates.classId !== undefined ||
         updates.status !== undefined ||
         updates.registerNumber !== undefined;
