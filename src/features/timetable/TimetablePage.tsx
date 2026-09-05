@@ -293,61 +293,81 @@ export const TimetablePage: React.FC = () => {
 
                       {/* Day Columns */}
                       {DAYS_OF_WEEK.map((day) => {
-                        const slot = filteredSlots.find(
+                        const cellSlots = filteredSlots.filter(
                           (s) => s.dayOfWeek === day && s.periodNumber === periodNum
                         );
-                        const cls = slot ? classMap.get(slot.classId) : undefined;
 
                         return (
                           <td
                             key={`${day}-${periodNum}`}
                             className="py-2 px-2 border-e last:border-e-0 border-slate-200 dark:border-slate-800 align-top min-h-[72px]"
                           >
-                            {slot ? (
-                              <div className="p-2 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-slate-900 dark:text-slate-100 group relative flex flex-col justify-between h-full">
-                                <div>
-                                  <div className="flex items-center justify-between gap-1 mb-1">
-                                    <span className="font-bold text-xs text-emerald-950 dark:text-emerald-200">
-                                      {cls?.name || 'Class'}
-                                    </span>
-                                    {cls?.levelCode && (
-                                      <Badge variant="default" className="text-[10px] px-1 py-0">
-                                        {cls.levelCode}
-                                      </Badge>
-                                    )}
-                                  </div>
+                            {cellSlots.length > 0 ? (
+                              <div className="space-y-1.5">
+                                {cellSlots.map((slot) => {
+                                  const cls = classMap.get(slot.classId);
+                                  return (
+                                    <div
+                                      key={slot.id}
+                                      className="p-2 rounded-lg bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-slate-900 dark:text-slate-100 group relative flex flex-col justify-between"
+                                    >
+                                      <div>
+                                        <div className="flex items-center justify-between gap-1 mb-1">
+                                          <span className="font-bold text-xs text-emerald-950 dark:text-emerald-200">
+                                            {cls?.name || 'Class'}
+                                          </span>
+                                          {cls?.levelCode && (
+                                            <Badge variant="default" className="text-[10px] px-1 py-0">
+                                              {cls.levelCode}
+                                            </Badge>
+                                          )}
+                                        </div>
 
-                                  <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <DoorOpen className="w-3 h-3 text-slate-400 shrink-0" />
-                                    <span className="truncate">
-                                      {slot.roomNumber || cls?.roomNumber || 'Room —'}
-                                    </span>
-                                  </div>
+                                        <div className="flex items-center gap-1 text-[11px] text-slate-600 dark:text-slate-400">
+                                          <DoorOpen className="w-3 h-3 text-slate-400 shrink-0" />
+                                          <span className="truncate">
+                                            {slot.roomNumber || cls?.roomNumber || 'Room —'}
+                                          </span>
+                                        </div>
 
-                                  {slot.notes && (
-                                    <div className="text-[10px] text-slate-500 italic mt-1 line-clamp-1">
-                                      {slot.notes}
+                                        {slot.notes && (
+                                          <div className="text-[10px] text-slate-500 italic mt-1 line-clamp-1">
+                                            {slot.notes}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {!isArchived && (
+                                        <div className="flex items-center justify-end gap-1 mt-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                                          <button
+                                            onClick={() => handleEditSlot(slot)}
+                                            className="p-1 rounded text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer"
+                                            title="Edit slot"
+                                          >
+                                            <Edit2 className="w-3 h-3" />
+                                          </button>
+                                          <button
+                                            onClick={() => handleDeleteSlot(slot)}
+                                            className="p-1 rounded text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
+                                            title="Delete slot"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
+                                  );
+                                })}
 
-                                {!isArchived && (
-                                  <div className="flex items-center justify-end gap-1 mt-2 opacity-80 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                      onClick={() => handleEditSlot(slot)}
-                                      className="p-1 rounded text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-400 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/50 transition-colors cursor-pointer"
-                                      title="Edit slot"
-                                    >
-                                      <Edit2 className="w-3 h-3" />
-                                    </button>
-                                    <button
-                                      onClick={() => handleDeleteSlot(slot)}
-                                      className="p-1 rounded text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                                      title="Delete slot"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
+                                {!isArchived && selectedClassFilter === 'ALL' && (
+                                  <button
+                                    onClick={() => handleAddSlot(day, periodNum)}
+                                    className="w-full py-1 rounded border border-dashed border-slate-200 dark:border-slate-800 hover:border-emerald-400 dark:hover:border-emerald-600 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center justify-center transition-colors cursor-pointer text-[10px]"
+                                    title={`Add another slot for ${day} Period ${periodNum}`}
+                                  >
+                                    <Plus className="w-3 h-3 mr-1" />
+                                    Add Slot
+                                  </button>
                                 )}
                               </div>
                             ) : (

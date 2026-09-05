@@ -104,7 +104,7 @@ export const ClassWorkspaceView: React.FC<ClassWorkspaceViewProps> = ({
         studentEnrollmentRepository.listByClass(schoolClass.id),
         timetableRepository.listByClass(schoolClass.id),
         lessonRepository.listByClassAndAcademicYear(schoolClass.id, academicYear.id),
-        attendanceRepository.getAttendanceStatsForClass(schoolClass.id),
+        attendanceRepository.getAttendanceStatsForClass(academicYear.id, schoolClass.id),
       ]);
 
       setEnrolledItems(items);

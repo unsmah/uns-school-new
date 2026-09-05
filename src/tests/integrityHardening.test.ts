@@ -39,6 +39,7 @@ describe('Phase 1 Final Integrity Hardening Tests', () => {
     await db.academicYears.clear();
     await db.schools.clear();
     await db.curriculumVersions.clear();
+    await db.sessionRubrics.clear();
     await db.gradingSchemes.clear();
 
     await db.schools.add({
@@ -110,6 +111,16 @@ describe('Phase 1 Final Integrity Hardening Tests', () => {
       isOfficial: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+    });
+
+    await db.sessionRubrics.add({
+      id: 'rubric-1',
+      curriculumVersionId: 'curr-valid-v1',
+      code: 'listen_and_do',
+      name: 'I Listen and Do',
+      pedagogicalStage: 'Presentation',
+      defaultDurationMinutes: 60,
+      order: 1,
     });
 
     const defaultScheme: GradingScheme = {

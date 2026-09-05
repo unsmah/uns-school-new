@@ -1,13 +1,13 @@
-# UNS SCHOOL — Architectural Blueprint (Phase 1 Foundation)
+# UNS SCHOOL — Architectural Blueprint
 
 ## 1. Executive Summary & Philosophy
 
-**UNS SCHOOL** is a client-only, offline-first digital workspace designed for Algerian middle-school English teachers (1AM–4AM). It replaces fragmented paper documents (Cahier Journal, Cahier de Textes, Gradebook, Student Registers, Attendance sheets, and Lesson Plans) with a unified, high-reliability local application.
+**UNS SCHOOL** is a client-only, offline-first digital workspace designed for Algerian middle-school English teachers (1AM–4AM / 1MS–4MS). It replaces fragmented paper documents (Cahier Journal, Cahier de Textes, Gradebook, Student Registers, Attendance sheets, and Lesson Plans) with a unified, high-reliability local application.
 
 The core design principle is:
 > **"Enter information once, reuse it everywhere."**
 
-An administrative entry (e.g. conducting a lesson on Sunday period 1) automatically anchors student attendance, generates the inspector-mandated **Cahier Journal** entry, populates the class **Cahier de Textes**, and logs pedagogical sequence progression without redundant manual transcription.
+An administrative entry (e.g. conducting a lesson on Sunday period 1) automatically anchors student attendance, generates future inspection-mandated logs, and records pedagogical sequence progression without redundant manual transcription.
 
 ---
 
@@ -23,7 +23,7 @@ The application strictly enforces a unidirectional data-flow with clean separati
                             ▼
 ┌─────────────────────────────────────────────────────────┐
 │                     Feature Modules                     │
-│  (Dashboard, Classes, Students, Lessons, Journal, etc.) │
+│  (Classes, Students, Timetable, Lessons, Attendance)   │
 └───────────────────────────┬─────────────────────────────┘
                             ▼
 ┌─────────────────────────────────────────────────────────┐
@@ -53,7 +53,7 @@ The application strictly enforces a unidirectional data-flow with clean separati
 1. **Zero Raw Dexie in UI Components**: UI components never call `db.table.add()` or `db.table.where()` directly; they interact exclusively through typed repositories in `src/db/repositories/`.
 2. **Authoritative Store**: IndexedDB is the authoritative store of record. `localStorage` is reserved exclusively for non-critical client UI preferences (active language, dark/light theme).
 3. **No External Backend**: There is no server-side database or remote API. Privacy and data sovereignty are strictly maintained on the teacher's device.
-4. **Declarative Grading Engine**: Grading logic is evaluated strictly via deterministic arithmetic formulas. The use of `eval()`, `new Function()`, or dynamic code execution is strictly prohibited.
+4. **Declarative Business Rules**: Grading and curriculum evaluation logic are strictly evaluated via deterministic algorithms. Dynamic code execution (`eval()`, `new Function()`) is forbidden.
 
 ---
 
@@ -69,17 +69,28 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - **Invariants**:
   - A student person can have at most **one active enrollment** per academic year.
   - The register number (`registerNumber`) is strictly unique within an individual class roster.
-  - **`StudentEnrollment.academicYearId` Immutability**: `academicYearId` cannot be mutated on an existing enrollment record. Progression/promotion to a new academic year creates a distinct new `StudentEnrollment`, permanently preserving the historical enrollment record.
+  - **`StudentEnrollment.academicYearId` Immutability**: `academicYearId` cannot be mutated on an existing enrollment record. Progression/promotion to a new academic year creates a distinct new `StudentEnrollment`, permanently preserving historical records.
 
 ### 3.3. Academic Year & School Ownership Invariants
 - **`AcademicYear.schoolId` Immutability**: Once created, an `AcademicYear` belongs permanently to its `School`. Modifying `schoolId` on an existing academic year is rejected at the repository level.
 - **Archived Academic Year Read-Only Protection**: Once `isArchived: true`, an academic year cannot be modified through ordinary updates (including changes to labels, dates, or current flags). Editability can only be restored through the explicit `unarchive()` repository method.
 - **Class Academic Year & School Immutability**: Classes permanently belong to their assigned academic year and school; `academicYearId` and `schoolId` cannot be mutated after creation.
 
-### 3.4. Authoritative Lesson Session Model
-- A **`Lesson`** record is the single source of truth for pedagogical execution.
-- **`Cahier Journal`** (daily log across all classes) and **`Cahier de Textes`** (chronological class log) are **derived projections** generated directly from `Lesson` records. They do not store redundant duplicate content.
-- **Attendance Anchoring**: `AttendanceRecord` is anchored to a `Lesson`. The date of an attendance record is synchronized to the lesson date. When a lesson is deleted, linked attendance records are purged atomically in a Dexie transaction.
+### 3.4. Classroom Operations & Timetable Architecture (Phase 3 Hardened)
+- **Timetable Conflict Scoping**:
+  - A timetable conflict check is scoped to `academicYearId + classId + dayOfWeek + periodNumber`.
+  - Multiple classes can occupy the same period on the same day without throwing conflict errors.
+  - Timetable cells support rendering multiple distinct class slots.
+- **Authoritative Lesson Session Model**:
+  - A **`Lesson`** record is the single source of truth for pedagogical execution.
+  - Relational validation ensures `curriculumVersionId` exists, `sequenceId` belongs to the curriculum version and matches the lesson's `levelCode`, and `rubricId` belongs to the curriculum version and level restrictions.
+  - Historical lessons and their original curriculum references are permanently preserved.
+- **Synchronized Attendance & Atomic Roll Call**:
+  - `AttendanceRecord` is anchored to a `Lesson`. The attendance date is strictly synchronized to the parent lesson date.
+  - Class attendance statistics (`getAttendanceStatsForClass`) are strictly scoped to both `academicYearId` and `classId`.
+  - Bulk attendance (`markAllPresent`) implements an atomic pre-validation loop: if any candidate enrollment does not exist, belongs to another class or academic year, or is inactive, the transaction throws an error and performs zero writes.
+- **Phase 4 Isolation**:
+  - `Cahier Journal` and `Cahier de Textes` are scheduled for Phase 4. They remain explicit coming-soon placeholders to prevent premature scope creep.
 
 ---
 

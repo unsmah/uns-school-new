@@ -35,14 +35,38 @@ Schema Version: `1`
 
 ---
 
-## Referential Integrity & Cascade Rules
+## Referential Integrity & Business Logic Rules
 
 Because IndexedDB does not have built-in foreign key constraints, all integrity rules are enforced transactionally within the repository layer:
 
-1. **Lesson -> Attendance Cascade**: Deleting a `Lesson` deletes all `attendance` records where `lessonId === lesson.id` inside a readwrite Dexie transaction.
-2. **Assessment -> Grade Cascade**: Deleting an `Assessment` deletes all `grades` records referencing that `assessmentId`.
-3. **Class Deletion Guard**: A `class` cannot be deleted if active `studentEnrollments` or `lessons` are attached. It must be archived (`isArchived: true`) instead.
-4. **Single Current Academic Year**: Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false` for that school.
-5. **Academic Year Immutability & Protection**: `AcademicYear.schoolId` cannot be mutated after creation. Archived academic years are strictly read-only and reject updates until explicitly restored via `unarchive()`.
-6. **Class Academic Year & School Immutability**: `SchoolClass.academicYearId` and `SchoolClass.schoolId` are immutable after creation. Classes cannot be created in or modified in archived academic years.
-7. **Enrollment Immutability & Register Number Uniqueness**: `StudentEnrollment.academicYearId` is immutable (promotion requires a new enrollment). Uniqueness of `registerNumber` within `classId` and active enrollment per academic year are transactionally validated.
+1. **Timetable Slot Scoping & Conflict Checking**:
+   - A slot conflict check is strictly scoped to `academicYearId + classId + dayOfWeek + periodNumber`.
+   - Distinct classes can occupy the same period on the same day.
+   - Timetable slot's `academicYearId` and `schoolId` are immutable.
+
+2. **Lesson -> Attendance Cascade & Synchronized Date**:
+   - Deleting a `Lesson` deletes all `attendance` records where `lessonId === lesson.id` inside a readwrite Dexie transaction.
+   - Attendance date is strictly derived from the parent `Lesson` date and cannot be independently modified.
+
+3. **Attendance Statistics Scoping**:
+   - `getAttendanceStatsForClass` requires both `academicYearId` and `classId` parameters, ensuring class statistics never blend data from different academic years.
+
+4. **Atomic Roll Call (`markAllPresent`)**:
+   - A multi-step pre-validation verifies that all passed enrollment IDs exist, are active, and belong to the parent lesson's class and academic year.
+   - Any validation failure, missing record, or duplicate ID in the arguments causes an immediate abort with zero records written.
+
+5. **Curriculum Context Validation for Lessons**:
+   - Lessons validate that `curriculumVersionId` exists in `curriculumVersions`.
+   - If `sequenceId` is provided, it must belong to `curriculumVersionId` and its `levelCode` must match the lesson's `levelCode`.
+   - If `rubricId` is provided, it must belong to `curriculumVersionId` and match any level constraint.
+   - Historical lessons and their original references are preserved intact.
+
+6. **Assessment -> Grade Cascade**:
+   - Deleting an `Assessment` deletes all `grades` records referencing that `assessmentId`.
+
+7. **Class Deletion Guard**:
+   - A `class` cannot be deleted if active `studentEnrollments` or `lessons` are attached. It must be archived (`isArchived: true`) instead.
+
+8. **Single Current Academic Year**:
+   - Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false` for that school.
+   - `AcademicYear.schoolId` is immutable. Archived academic years are strictly read-only.

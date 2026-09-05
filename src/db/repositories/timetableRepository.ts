@@ -82,16 +82,16 @@ export const timetableRepository = {
         throw new Error(`Class schoolId does not match timetable slot schoolId.`);
       }
 
-      // 4. Check conflict on same day & period for the active academic year
+      // 4. Check conflict on same day & period for the active academic year and class
       const conflict = await db.timetable
         .where('academicYearId')
         .equals(slot.academicYearId)
-        .and((t) => t.dayOfWeek === slot.dayOfWeek && t.periodNumber === slot.periodNumber && t.id !== slot.id)
+        .and((t) => t.classId === slot.classId && t.dayOfWeek === slot.dayOfWeek && t.periodNumber === slot.periodNumber && t.id !== slot.id)
         .first();
 
       if (conflict) {
         throw new Error(
-          `A timetable slot already exists for ${slot.dayOfWeek} Period ${slot.periodNumber} in this academic year.`
+          `A timetable slot already exists for class ${slot.classId} on ${slot.dayOfWeek} Period ${slot.periodNumber} in this academic year.`
         );
       }
 
@@ -157,17 +157,17 @@ export const timetableRepository = {
         }
       }
 
-      // Check conflict if day or period changed
-      if (updates.dayOfWeek !== undefined || updates.periodNumber !== undefined) {
+      // Check conflict if day, period, or class changed
+      if (updates.dayOfWeek !== undefined || updates.periodNumber !== undefined || updates.classId !== undefined) {
         const conflict = await db.timetable
           .where('academicYearId')
           .equals(existing.academicYearId)
-          .and((t) => t.dayOfWeek === targetDay && t.periodNumber === targetPeriod && t.id !== id)
+          .and((t) => t.classId === targetClassId && t.dayOfWeek === targetDay && t.periodNumber === targetPeriod && t.id !== id)
           .first();
 
         if (conflict) {
           throw new Error(
-            `A timetable slot already exists for ${targetDay} Period ${targetPeriod} in this academic year.`
+            `A timetable slot already exists for class ${targetClassId} on ${targetDay} Period ${targetPeriod} in this academic year.`
           );
         }
       }

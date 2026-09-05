@@ -181,22 +181,49 @@ export const attendanceRepository = {
       }
 
       const year = await db.academicYears.get(parentLesson.academicYearId);
-      if (year?.isArchived) {
+      if (!year) {
+        throw new Error(`Academic year ${parentLesson.academicYearId} not found.`);
+      }
+      if (year.isArchived) {
         throw new Error('Cannot record attendance in an archived academic year.');
       }
 
       const parentClass = await db.classes.get(parentLesson.classId);
-      if (parentClass?.isArchived) {
+      if (!parentClass) {
+        throw new Error(`Class ${parentLesson.classId} not found.`);
+      }
+      if (parentClass.isArchived) {
         throw new Error('Cannot record attendance in an archived class.');
       }
 
+      // Check for duplicate enrollment IDs supplied in the input
+      const seenEnrollmentIds = new Set<string>();
+      for (const enrollmentId of studentEnrollmentIds) {
+        if (seenEnrollmentIds.has(enrollmentId)) {
+          throw new Error(`Duplicate enrollment ID supplied to markAllPresent: ${enrollmentId}.`);
+        }
+        seenEnrollmentIds.add(enrollmentId);
+      }
+
+      // Pre-validation pass: validate ALL enrollments BEFORE performing any writes
       for (const enrollmentId of studentEnrollmentIds) {
         const enrollment = await db.studentEnrollments.get(enrollmentId);
-        if (!enrollment) continue;
-        if (enrollment.classId !== parentLesson.classId || enrollment.academicYearId !== parentLesson.academicYearId) {
-          continue;
+        if (!enrollment) {
+          throw new Error(`Student enrollment with id ${enrollmentId} does not exist.`);
         }
+        if (enrollment.classId !== parentLesson.classId) {
+          throw new Error(`Enrollment ${enrollmentId} does not belong to lesson class ${parentLesson.classId}.`);
+        }
+        if (enrollment.academicYearId !== parentLesson.academicYearId) {
+          throw new Error(`Enrollment ${enrollmentId} does not belong to lesson academic year ${parentLesson.academicYearId}.`);
+        }
+        if (enrollment.status !== 'active') {
+          throw new Error(`Student enrollment ${enrollmentId} is not active (status: ${enrollment.status}).`);
+        }
+      }
 
+      // Persistence pass: either update existing attendance or add new record
+      for (const enrollmentId of studentEnrollmentIds) {
         const existing = await db.attendance
           .where('lessonId')
           .equals(lessonId)
@@ -212,7 +239,7 @@ export const attendanceRepository = {
           });
         } else {
           await db.attendance.add({
-            id: `att-${lessonId}-${enrollmentId}-${Date.now()}`,
+            id: crypto.randomUUID(),
             lessonId,
             classId: parentLesson.classId,
             studentEnrollmentId: enrollmentId,
@@ -261,9 +288,46 @@ export const attendanceRepository = {
     return { total, present, absent, late, excused, rate };
   },
 
-  async getAttendanceStatsForClass(classId: string): Promise<ClassAttendanceStats> {
-    const records = await db.attendance.where('classId').equals(classId).toArray();
-    const lessonsCount = await db.lessons.where('classId').equals(classId).count();
+  async getAttendanceStatsForClass(academicYearId: string, classId: string): Promise<ClassAttendanceStats> {
+    const year = await db.academicYears.get(academicYearId);
+    if (!year) {
+      throw new Error(`Academic year with id ${academicYearId} not found.`);
+    }
+
+    const schoolClass = await db.classes.get(classId);
+    if (!schoolClass) {
+      throw new Error(`Class with id ${classId} not found.`);
+    }
+
+    if (schoolClass.academicYearId !== academicYearId) {
+      throw new Error(`Class ${classId} does not belong to academic year ${academicYearId}.`);
+    }
+
+    const lessons = await db.lessons
+      .where('academicYearId')
+      .equals(academicYearId)
+      .and((l) => l.classId === classId)
+      .toArray();
+
+    const lessonIds = new Set(lessons.map((l) => l.id));
+
+    if (lessonIds.size === 0) {
+      return {
+        totalSessions: 0,
+        totalRecords: 0,
+        presentCount: 0,
+        absentCount: 0,
+        lateCount: 0,
+        excusedCount: 0,
+        averageRate: 100,
+      };
+    }
+
+    const records = await db.attendance
+      .where('classId')
+      .equals(classId)
+      .and((a) => lessonIds.has(a.lessonId))
+      .toArray();
 
     const totalRecords = records.length;
     let presentCount = 0;
@@ -282,7 +346,7 @@ export const attendanceRepository = {
     const averageRate = totalRecords > 0 ? Math.round((attending / totalRecords) * 100) : 100;
 
     return {
-      totalSessions: lessonsCount,
+      totalSessions: lessons.length,
       totalRecords,
       presentCount,
       absentCount,
