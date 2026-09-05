@@ -79,7 +79,7 @@ export const AppLayout: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 antialiased">
       {/* Top Application Header */}
-      <header className="sticky top-0 z-40 h-14 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
+      <header className="print:hidden sticky top-0 z-40 h-14 border-b border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             id="mobile-sidebar-toggle"
@@ -148,7 +148,7 @@ export const AppLayout: React.FC = () => {
       <div className="flex-1 flex overflow-hidden">
         {/* Navigation Sidebar */}
         <aside
-          className={`fixed inset-y-14 start-0 z-30 w-64 border-e border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          className={`print:hidden fixed inset-y-14 start-0 z-30 w-64 border-e border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full lg:rtl:translate-x-0'
           }`}
         >
@@ -190,13 +190,13 @@ export const AppLayout: React.FC = () => {
         {sidebarOpen && (
           <div
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 z-20 bg-slate-900/40 backdrop-blur-xs lg:hidden"
+            className="print:hidden fixed inset-0 z-20 bg-slate-900/40 backdrop-blur-xs lg:hidden"
           />
         )}
 
         {/* Main Content View */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-6xl mx-auto">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 print:p-0 print:overflow-visible">
+          <div className="max-w-6xl mx-auto print:max-w-none print:w-full">
             <Outlet />
           </div>
         </main>
