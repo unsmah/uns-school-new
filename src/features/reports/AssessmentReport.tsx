@@ -6,6 +6,7 @@ import { gradeRepository } from '../../db/repositories/gradeRepository';
 import { studentEnrollmentRepository } from '../../db/repositories/studentEnrollmentRepository';
 import { schoolRepository } from '../../db/repositories/schoolRepository';
 import { teacherRepository } from '../../db/repositories/teacherRepository';
+import { gradingCalculationService } from '../../services/gradingCalculationService';
 import type { SchoolClass, School, TeacherProfile, Assessment, GradeEntry, StudentEnrollment } from '../../types';
 import { PrintableDocument } from '../../components/print/PrintableDocument';
 import { Button, Card } from '../../components/ui';
@@ -73,7 +74,7 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
         'Register Number': s.registerNumber,
         'Name': `${s.person.lastNameLatin} ${s.person.firstNameLatin}`,
         'Score': grade?.score ?? '',
-        'Out Of': assessment?.maxScore ?? '',
+        'Out Of': effectiveMaxScore,
         'Remarks': grade?.teacherRemarks ?? ''
       };
     });
@@ -85,14 +86,13 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
   const selectedClass = classes.find(c => c.id === selectedClassId);
   const assessment = assessments.find(a => a.id === selectedAssessmentId);
 
-  // Statistics
-  let avg = 0;
-  let passCount = 0;
-  const validGrades = grades.filter(g => g.score !== undefined && g.score !== null);
-  if (validGrades.length > 0 && assessment) {
-    avg = validGrades.reduce((sum, g) => sum + g.score!, 0) / validGrades.length;
-    passCount = validGrades.filter(g => g.score! >= (assessment.maxScore / 2)).length;
-  }
+  // Authoritative grading calculation service integration
+  const stats = (assessment && students.length > 0)
+    ? gradingCalculationService.calculateAssessmentStatistics(assessment, grades, students.length)
+    : null;
+
+  const effectiveMaxScore = assessment?.componentSnapshot?.maxScore ?? assessment?.maxScore ?? 20;
+  const effectiveCoefficient = assessment?.componentSnapshot?.coefficient ?? assessment?.coefficient ?? 1;
 
   return (
     <div className="space-y-4">
@@ -145,13 +145,13 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
             <div className="flex justify-between items-end mb-4">
               <div className="text-sm">
                 <div><strong>Type:</strong> <span className="capitalize">{assessment.componentKey.replace('_', ' ')}</span></div>
-                <div><strong>Max Score:</strong> {assessment.maxScore}</div>
-                <div><strong>Coefficient:</strong> {assessment.coefficient}</div>
+                <div><strong>Max Score:</strong> {effectiveMaxScore}</div>
+                <div><strong>Coefficient:</strong> {effectiveCoefficient}</div>
               </div>
               <div className="border border-slate-800 p-2 text-center text-sm w-48">
                 <div className="font-bold border-b border-slate-800 mb-1 pb-1">Class Statistics</div>
-                <div className="flex justify-between"><span>Average:</span> <strong>{avg.toFixed(2)} / {assessment.maxScore}</strong></div>
-                <div className="flex justify-between mt-1"><span>Pass Rate:</span> <strong>{validGrades.length ? Math.round((passCount/validGrades.length)*100) : 0}%</strong></div>
+                <div className="flex justify-between"><span>Average:</span> <strong>{stats?.averageScore !== null && stats?.averageScore !== undefined ? `${stats.averageScore} / ${effectiveMaxScore}` : '-'}</strong></div>
+                <div className="flex justify-between mt-1"><span>Pass Rate:</span> <strong>{stats ? `${stats.passRatePercentage}%` : '-'}</strong></div>
               </div>
             </div>
 
@@ -160,22 +160,40 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
                 <tr>
                   <th className="border border-slate-800 p-2 w-12 text-center">No.</th>
                   <th className="border border-slate-800 p-2 text-left">Student Name</th>
-                  <th className="border border-slate-800 p-2 w-24 text-center">Score (/{assessment.maxScore})</th>
+                  <th className="border border-slate-800 p-2 w-28 text-center">Score (/{effectiveMaxScore})</th>
                   <th className="border border-slate-800 p-2 text-left">Remarks</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((s) => {
                   const grade = grades.find(g => g.studentEnrollmentId === s.id);
-                  const isPassing = grade?.score !== undefined && grade.score >= (assessment.maxScore / 2);
+                  const passingThreshold = effectiveMaxScore / 2;
+                  let scoreDisplay = '-';
+                  let isPassing = false;
+                  let textClass = 'text-slate-400';
+
+                  if (grade) {
+                    if (grade.isMedicalExemption) {
+                      scoreDisplay = 'Exempt';
+                      textClass = 'text-amber-700 font-medium';
+                    } else if (grade.isAbsent) {
+                      scoreDisplay = '0 (Abs)';
+                      textClass = 'text-rose-600 font-bold';
+                    } else if (grade.score !== null && grade.score !== undefined) {
+                      scoreDisplay = `${grade.score}`;
+                      isPassing = grade.score >= passingThreshold;
+                      textClass = isPassing ? 'font-bold' : 'text-rose-600 font-bold';
+                    }
+                  }
+
                   return (
                     <tr key={s.id} className="hover:bg-slate-50">
                       <td className="border border-slate-800 p-1.5 text-center font-bold">{s.registerNumber}</td>
                       <td className="border border-slate-800 p-1.5 font-medium uppercase">
                         {s.person.lastNameLatin} <span className="capitalize">{s.person.firstNameLatin}</span>
                       </td>
-                      <td className={`border border-slate-800 p-1.5 text-center font-bold text-sm ${grade?.score !== undefined ? (isPassing ? '' : 'text-rose-600') : 'text-slate-400'}`}>
-                        {grade?.score !== undefined ? grade.score : '-'}
+                      <td className={`border border-slate-800 p-1.5 text-center font-bold text-sm ${textClass}`}>
+                        {scoreDisplay}
                       </td>
                       <td className="border border-slate-800 p-1.5 text-slate-600">
                         {grade?.teacherRemarks || ''}

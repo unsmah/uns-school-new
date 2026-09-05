@@ -17,6 +17,7 @@ export const PlanningReport: React.FC<{onBack: () => void}> = ({onBack}) => {
   const [school, setSchool] = useState<School | null>(null);
   const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
   const [overview, setOverview] = useState<any>(null);
+  const [curriculumError, setCurriculumError] = useState<string | null>(null);
 
   useEffect(() => {
     schoolRepository.get().then(s => setSchool(s || null));
@@ -33,31 +34,74 @@ export const PlanningReport: React.FC<{onBack: () => void}> = ({onBack}) => {
     });
   }, [selectedAcademicYear]);
 
-  
   useEffect(() => {
     if (!selectedClassId || !selectedAcademicYear) return;
     
-    // We need levelCode from class, sequences from curriculum, lessons from class
     const selectedClass = classes.find(c => c.id === selectedClassId);
     if (!selectedClass) return;
 
-    import('../../db/repositories/curriculumRepository').then(({curriculumRepository}) => {
-      import('../../db/repositories/lessonRepository').then(({lessonRepository}) => {
-        Promise.all([
-          curriculumRepository.getActiveVersion().then(v => v ? curriculumRepository.listSequences(v.id, selectedClass.levelCode) : []),
-          lessonRepository.listByClassAndAcademicYear(selectedClassId, selectedAcademicYear.id)
-        ]).then(([sequences, lessons]) => {
-          const result = computeClassPlanningOverview({
-            classId: selectedClassId,
-            academicYearId: selectedAcademicYear.id,
-            levelCode: selectedClass.levelCode,
-            sequences,
-            lessons
-          });
-          setOverview(result);
+    let isSubscribed = true;
+
+    async function loadPlanningData() {
+      const { curriculumRepository } = await import('../../db/repositories/curriculumRepository');
+      const { lessonRepository } = await import('../../db/repositories/lessonRepository');
+
+      const lessons = await lessonRepository.listByClassAndAcademicYear(selectedClassId, selectedAcademicYear.id);
+
+      // Determine historical curriculum version ID directly from source records
+      const versionIds = Array.from(new Set(lessons.map(l => l.curriculumVersionId).filter(Boolean)));
+      
+      let targetVersionId: string | null = null;
+      let errorMsg: string | null = null;
+
+      if (versionIds.length === 1) {
+        targetVersionId = versionIds[0];
+      } else if (versionIds.length > 1) {
+        errorMsg = 'Multiple conflicting curriculum versions found across lessons for this class.';
+      } else {
+        // Fall back to academic year's assigned active curriculum version if set
+        if (selectedAcademicYear.activeCurriculumVersionId) {
+          targetVersionId = selectedAcademicYear.activeCurriculumVersionId;
+        } else {
+          errorMsg = 'No curriculum version context found for this historical academic year or lesson set.';
+        }
+      }
+
+      if (!targetVersionId || errorMsg) {
+        if (isSubscribed) {
+          setOverview(null);
+          setCurriculumError(errorMsg || 'Unable to determine historical curriculum context.');
+        }
+        return;
+      }
+
+      const curriculumVersion = await curriculumRepository.getVersionById(targetVersionId);
+      if (!curriculumVersion) {
+        if (isSubscribed) {
+          setOverview(null);
+          setCurriculumError(`Associated curriculum version (${targetVersionId}) is unavailable.`);
+        }
+        return;
+      }
+
+      const sequences = await curriculumRepository.listSequences(targetVersionId, selectedClass.levelCode);
+
+      if (isSubscribed) {
+        setCurriculumError(null);
+        const result = computeClassPlanningOverview({
+          classId: selectedClassId,
+          academicYearId: selectedAcademicYear.id,
+          levelCode: selectedClass.levelCode,
+          sequences,
+          lessons
         });
-      });
-    });
+        setOverview(result);
+      }
+    }
+
+    loadPlanningData();
+
+    return () => { isSubscribed = false; };
   }, [selectedClassId, selectedAcademicYear, classes]);
 
 
@@ -90,6 +134,13 @@ export const PlanningReport: React.FC<{onBack: () => void}> = ({onBack}) => {
           </Button>
         </div>
       </div>
+
+      {curriculumError && (
+        <Card className="p-6 bg-amber-50 dark:bg-amber-950/20 border-amber-200 text-amber-800 dark:text-amber-200">
+          <div className="font-semibold text-base mb-1">Historical Curriculum Context Unavailable</div>
+          <div className="text-sm">{curriculumError}</div>
+        </Card>
+      )}
 
       {selectedClass && overview && (
         <Card className="print:border-none print:shadow-none overflow-hidden">

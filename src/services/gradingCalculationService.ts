@@ -220,10 +220,11 @@ export const gradingCalculationService = {
 
     const sum = effectiveScores.reduce((acc, curr) => acc + curr, 0);
     const rawAverage = sum / effectiveScores.length;
-    const normalizedAverage = (rawAverage / assessment.maxScore) * 20;
+    const effectiveMaxScore = assessment.componentSnapshot?.maxScore ?? assessment.maxScore;
+    const normalizedAverage = (rawAverage / effectiveMaxScore) * 20;
     const highest = Math.max(...effectiveScores);
     const lowest = Math.min(...effectiveScores);
-    const passingThreshold = assessment.maxScore / 2; // e.g. 10/20
+    const passingThreshold = effectiveMaxScore / 2; // e.g. 10/20
     const passCount = effectiveScores.filter((s) => s >= passingThreshold).length;
     const passRatePercentage = parseFloat(((passCount / effectiveScores.length) * 100).toFixed(1));
 

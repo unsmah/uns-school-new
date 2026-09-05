@@ -1,6 +1,6 @@
 # UNS SCHOOL — Project State
 
-**Phase**: Phase 7 — Workflow Extras & Teacher Productivity (Implementation Complete — External Audit Pending)
+**Phase**: Phase 8 — Official Documents, Printing & Export (Implementation Complete — External Audit Pending)
 **Architecture**: 100% Client-Only SPA (React 19.0.1, Vite, TypeScript, Tailwind CSS, Dexie.js / IndexedDB)  
 **Target User**: Middle school English teachers in Algeria (1AM–4AM / 1MS–4MS)  
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
@@ -63,6 +63,17 @@
 - **Referential Integrity on Curriculum Entities**:
   - Transactional guards prevent deleting sequences, rubrics, or objectives that are referenced by existing `Lesson` records.
 
+### 5. Official Documents, Printing & Export (Phase 8 — Complete)
+- **Printable Document Wrapper**:
+  - Official document header projection, print-only layout CSS (`@media print`), and metadata framing.
+- **Official Middle-School Reports**:
+  - Class List Report with UTF-8 BOM CSV export.
+  - Attendance Register matrix.
+  - Cahier de Journal daily log projection.
+  - Cahier de Textes class history projection.
+  - Planning & Progression Report with historical curriculum context protection.
+  - Assessment & Marks Sheet consuming authoritative `gradingCalculationService` results with frozen snapshot protection.
+
 ---
 
 ## Current System Invariants
@@ -76,19 +87,24 @@
 
 3. **Curriculum Version Integrity**:
    - Lessons reference specific `curriculumVersionId`. Historical lessons retain their original sequence and rubric definitions regardless of active curriculum updates.
+   - Planning reports dynamically resolve historical lesson curriculum versions and never fall back to current active curriculum.
    - Sequence/Rubric deletion is rejected if referenced by existing lessons.
 
-4. **Timetable Conflict Uniqueness**:
+4. **Assessment & Grading Snapshot Integrity**:
+   - Assessment reports consume `gradingCalculationService` with frozen `componentSnapshot` and `maxOverallScoreSnapshot`.
+   - Modifying active global grading schemes after grade entry does not alter historical assessment calculations or report rendering.
+
+5. **Timetable Conflict Uniqueness**:
    - `academicYearId + classId + dayOfWeek + periodNumber` defines unique slot occupancy.
    - Different classes can occupy slots in the same period on the same day.
 
-5. **Attendance Statistics Scoping**:
+6. **Attendance Statistics Scoping**:
    - Class attendance metrics require both `academicYearId` and `classId`. Querying with mismatched IDs is rejected.
 
-6. **Atomic Roll Call Validation**:
+7. **Atomic Roll Call Validation**:
    - `markAllPresent()` performs an atomic pre-validation pass before writing. Any single invalid enrollment aborts the entire transaction.
 
-7. **Two-Tier Student Identity & Enrollment**:
+8. **Two-Tier Student Identity & Enrollment**:
    - Active enrollment is strictly unique per student per academic year. Register numbers are unique per class roster.
 
 
