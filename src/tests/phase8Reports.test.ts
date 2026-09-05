@@ -273,4 +273,132 @@ describe('Phase 8 - Reports & Export', () => {
     expect(postChangeStats.passCount).toBe(1);
     expect(postChangeStats.passRatePercentage).toBe(100);
   });
+
+  it('proves student-level assessment result evaluation is derived authoritatively without duplicating policy', async () => {
+    const { gradingCalculationService } = await import('../services/gradingCalculationService');
+    const assessment: Assessment = {
+      id: 'ast-2',
+      academicYearId: yearId,
+      classId: classId,
+      gradingSchemeId: 'scheme-1',
+      termNumber: 1,
+      title: 'Term Test',
+      componentKey: 'devoir_surveille',
+      maxScore: 20,
+      coefficient: 2,
+      date: '2023-11-20',
+      isLocked: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      componentSnapshot: {
+        componentKey: 'devoir_surveille',
+        label: 'Test',
+        maxScore: 20,
+        coefficient: 2,
+        isMandatory: true,
+      },
+    };
+
+    // Passing grade (12/20)
+    const gradePassing: GradeEntry = {
+      id: 'g-1',
+      assessmentId: 'ast-2',
+      studentEnrollmentId: 'e-1',
+      score: 12,
+      isAbsent: false,
+      isMedicalExemption: false,
+      updatedAt: new Date().toISOString(),
+    };
+    const evalPassing = gradingCalculationService.evaluateStudentAssessmentResult(assessment, gradePassing);
+    expect(evalPassing.status).toBe('graded');
+    expect(evalPassing.displayScore).toBe('12');
+    expect(evalPassing.isPassing).toBe(true);
+
+    // Failing grade (8/20)
+    const gradeFailing: GradeEntry = {
+      id: 'g-2',
+      assessmentId: 'ast-2',
+      studentEnrollmentId: 'e-2',
+      score: 8,
+      isAbsent: false,
+      isMedicalExemption: false,
+      updatedAt: new Date().toISOString(),
+    };
+    const evalFailing = gradingCalculationService.evaluateStudentAssessmentResult(assessment, gradeFailing);
+    expect(evalFailing.status).toBe('graded');
+    expect(evalFailing.displayScore).toBe('8');
+    expect(evalFailing.isPassing).toBe(false);
+
+    // Unexcused absence
+    const gradeAbsent: GradeEntry = {
+      id: 'g-3',
+      assessmentId: 'ast-2',
+      studentEnrollmentId: 'e-3',
+      score: null,
+      isAbsent: true,
+      isMedicalExemption: false,
+      updatedAt: new Date().toISOString(),
+    };
+    const evalAbsent = gradingCalculationService.evaluateStudentAssessmentResult(assessment, gradeAbsent);
+    expect(evalAbsent.status).toBe('absent');
+    expect(evalAbsent.displayScore).toBe('0 (Abs)');
+    expect(evalAbsent.effectiveScore).toBe(0);
+    expect(evalAbsent.isPassing).toBe(false);
+
+    // Medical exemption
+    const gradeExempt: GradeEntry = {
+      id: 'g-4',
+      assessmentId: 'ast-2',
+      studentEnrollmentId: 'e-4',
+      score: null,
+      isAbsent: false,
+      isMedicalExemption: true,
+      updatedAt: new Date().toISOString(),
+    };
+    const evalExempt = gradingCalculationService.evaluateStudentAssessmentResult(assessment, gradeExempt);
+    expect(evalExempt.status).toBe('exempt');
+    expect(evalExempt.displayScore).toBe('Exempt');
+    expect(evalExempt.effectiveScore).toBeNull();
+
+    // Missing grade entry
+    const evalMissing = gradingCalculationService.evaluateStudentAssessmentResult(assessment, undefined);
+    expect(evalMissing.status).toBe('missing');
+    expect(evalMissing.displayScore).toBe('-');
+    expect(evalMissing.effectiveScore).toBeNull();
+  });
+
+  it('safely handles unconfigured/null planning targets without NaN, Infinity, or division by zero', async () => {
+    const { computeSequenceProgress, computeClassPlanningOverview } = await import('../services/planningCalculationService');
+
+    const unconfiguredSeq = {
+      id: 'seq-unconfigured',
+      curriculumVersionId: 'v1',
+      levelCode: '1AM',
+      sequenceNumber: 1,
+      title: 'Unconfigured Sequence',
+      plannedSessionsCount: 0, // Unconfigured target
+      targetedCompetencyIds: [],
+      order: 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const seqMetric = computeSequenceProgress(unconfiguredSeq, []);
+    expect(seqMetric.plannedSessionsCount).toBeNull();
+    expect(seqMetric.isPlannedTargetConfigured).toBe(false);
+    expect(seqMetric.completionPercentage).toBeNull(); // Must be null, NOT NaN or Infinity
+    expect(seqMetric.remainingSessionsCount).toBeNull();
+
+    const overview = computeClassPlanningOverview({
+      classId,
+      academicYearId: yearId,
+      levelCode: '1AM',
+      sequences: [unconfiguredSeq],
+      lessons: [],
+    });
+
+    expect(overview.isPlannedTargetConfigured).toBe(false);
+    expect(overview.overallProgressPercentage).toBeNull(); // Must be null, NOT NaN or Infinity
+    expect(overview.totalPlannedSessions).toBe(0);
+  });
 });

@@ -167,23 +167,15 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
               <tbody>
                 {students.map((s) => {
                   const grade = grades.find(g => g.studentEnrollmentId === s.id);
-                  const passingThreshold = effectiveMaxScore / 2;
-                  let scoreDisplay = '-';
-                  let isPassing = false;
-                  let textClass = 'text-slate-400';
+                  const evalResult = gradingCalculationService.evaluateStudentAssessmentResult(assessment, grade);
 
-                  if (grade) {
-                    if (grade.isMedicalExemption) {
-                      scoreDisplay = 'Exempt';
-                      textClass = 'text-amber-700 font-medium';
-                    } else if (grade.isAbsent) {
-                      scoreDisplay = '0 (Abs)';
-                      textClass = 'text-rose-600 font-bold';
-                    } else if (grade.score !== null && grade.score !== undefined) {
-                      scoreDisplay = `${grade.score}`;
-                      isPassing = grade.score >= passingThreshold;
-                      textClass = isPassing ? 'font-bold' : 'text-rose-600 font-bold';
-                    }
+                  let textClass = 'text-slate-400';
+                  if (evalResult.status === 'exempt') {
+                    textClass = 'text-amber-700 font-medium';
+                  } else if (evalResult.status === 'absent') {
+                    textClass = 'text-rose-600 font-bold';
+                  } else if (evalResult.status === 'graded') {
+                    textClass = evalResult.isPassing ? 'font-bold' : 'text-rose-600 font-bold';
                   }
 
                   return (
@@ -193,7 +185,7 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
                         {s.person.lastNameLatin} <span className="capitalize">{s.person.firstNameLatin}</span>
                       </td>
                       <td className={`border border-slate-800 p-1.5 text-center font-bold text-sm ${textClass}`}>
-                        {scoreDisplay}
+                        {evalResult.displayScore}
                       </td>
                       <td className="border border-slate-800 p-1.5 text-slate-600">
                         {grade?.teacherRemarks || ''}

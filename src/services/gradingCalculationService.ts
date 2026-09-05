@@ -245,6 +245,97 @@ export const gradingCalculationService = {
   },
 
   /**
+   * Evaluates a single student's grade result for an assessment according to authoritative grading policy.
+   * Respects componentSnapshot maxScore, passing threshold, absent handling (0), and medical exemption.
+   */
+  evaluateStudentAssessmentResult(
+    assessment: Assessment,
+    grade: GradeEntry | undefined
+  ): {
+    status: 'graded' | 'absent' | 'exempt' | 'missing';
+    displayScore: string;
+    rawScore: number | null;
+    effectiveScore: number | null;
+    effectiveMaxScore: number;
+    passingThreshold: number;
+    isPassing: boolean;
+    isAbsent: boolean;
+    isMedicalExemption: boolean;
+  } {
+    const effectiveMaxScore = assessment.componentSnapshot?.maxScore ?? assessment.maxScore;
+    const passingThreshold = effectiveMaxScore / 2;
+
+    if (!grade) {
+      return {
+        status: 'missing',
+        displayScore: '-',
+        rawScore: null,
+        effectiveScore: null,
+        effectiveMaxScore,
+        passingThreshold,
+        isPassing: false,
+        isAbsent: false,
+        isMedicalExemption: false,
+      };
+    }
+
+    if (grade.isMedicalExemption) {
+      return {
+        status: 'exempt',
+        displayScore: 'Exempt',
+        rawScore: null,
+        effectiveScore: null,
+        effectiveMaxScore,
+        passingThreshold,
+        isPassing: false,
+        isAbsent: false,
+        isMedicalExemption: true,
+      };
+    }
+
+    if (grade.isAbsent) {
+      return {
+        status: 'absent',
+        displayScore: '0 (Abs)',
+        rawScore: 0,
+        effectiveScore: 0,
+        effectiveMaxScore,
+        passingThreshold,
+        isPassing: 0 >= passingThreshold,
+        isAbsent: true,
+        isMedicalExemption: false,
+      };
+    }
+
+    if (grade.score !== null && grade.score !== undefined) {
+      const isPassing = grade.score >= passingThreshold;
+      return {
+        status: 'graded',
+        displayScore: `${grade.score}`,
+        rawScore: grade.score,
+        effectiveScore: grade.score,
+        effectiveMaxScore,
+        passingThreshold,
+        isPassing,
+        isAbsent: false,
+        isMedicalExemption: false,
+      };
+    }
+
+    return {
+      status: 'missing',
+      displayScore: '-',
+      rawScore: null,
+      effectiveScore: null,
+      effectiveMaxScore,
+      passingThreshold,
+      isPassing: false,
+      isAbsent: false,
+      isMedicalExemption: false,
+    };
+  },
+
+  /**
    * Calculates class statistics: average, highest, lowest, pass rate (score >= 10/20).
    */
   calculateClassTermStatistics(results: CalculatedStudentGradeResult[], passingThreshold = 10): {

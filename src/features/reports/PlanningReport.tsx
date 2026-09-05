@@ -154,24 +154,25 @@ export const PlanningReport: React.FC<{onBack: () => void}> = ({onBack}) => {
             <div className="grid grid-cols-4 gap-4 mb-6">
               <div className="border border-slate-800 p-3 text-center bg-slate-50">
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Total Lessons</div>
-                <div className="text-xl font-bold">{overview.totalLessonsCompleted}</div>
+                <div className="text-xl font-bold">{overview.totalCompletedLessons} / {overview.totalRecordedLessons}</div>
               </div>
               <div className="border border-slate-800 p-3 text-center bg-slate-50">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Pacing Status</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Planned Target</div>
                 <div className="text-sm font-bold mt-1">
-                  {overview.pacingStatus === 'on-track' ? 'On Track' : 
-                   overview.pacingStatus === 'behind' ? 'Behind Schedule' : 'Ahead of Schedule'}
+                  {overview.isPlannedTargetConfigured ? `${overview.totalPlannedSessions} Sessions` : 'Target Unconfigured'}
                 </div>
               </div>
               <div className="border border-slate-800 p-3 text-center bg-slate-50">
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Sequences Completed</div>
                 <div className="text-xl font-bold">
-                  {overview.sequenceProgress.filter((s: any) => s.isCompleted).length} / {overview.sequenceProgress.length}
+                  {overview.sequencesMetrics.filter((s: any) => s.completionPercentage === 100).length} / {overview.sequencesMetrics.length}
                 </div>
               </div>
               <div className="border border-slate-800 p-3 text-center bg-slate-50">
                 <div className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-1">Overall Progress</div>
-                <div className="text-xl font-bold">{Math.round(overview.overallCompletionPercentage)}%</div>
+                <div className="text-xl font-bold">
+                  {overview.overallProgressPercentage !== null ? `${overview.overallProgressPercentage}%` : 'Target Unconfigured'}
+                </div>
               </div>
             </div>
 
@@ -180,37 +181,51 @@ export const PlanningReport: React.FC<{onBack: () => void}> = ({onBack}) => {
                 <tr>
                   <th className="border border-slate-800 p-2 w-16 text-center">Seq #</th>
                   <th className="border border-slate-800 p-2">Sequence Title</th>
-                  <th className="border border-slate-800 p-2 w-24 text-center">Planned Sessions</th>
+                  <th className="border border-slate-800 p-2 w-28 text-center">Planned Sessions</th>
                   <th className="border border-slate-800 p-2 w-24 text-center">Completed Sessions</th>
                   <th className="border border-slate-800 p-2 w-24 text-center">Remaining</th>
-                  <th className="border border-slate-800 p-2 w-24 text-center">Progress</th>
+                  <th className="border border-slate-800 p-2 w-32 text-center">Progress</th>
                   <th className="border border-slate-800 p-2 w-20 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {overview.sequenceProgress.map((seq: any) => (
-                  <tr key={seq.sequenceId} className={seq.isCompleted ? 'bg-slate-50 text-slate-500' : ''}>
-                    <td className="border border-slate-800 p-2 text-center font-bold">{seq.sequenceNumber}</td>
-                    <td className="border border-slate-800 p-2 font-medium">{seq.sequenceTitle}</td>
-                    <td className="border border-slate-800 p-2 text-center">{seq.plannedSessions}</td>
-                    <td className="border border-slate-800 p-2 text-center font-bold text-emerald-700">{seq.completedSessions}</td>
-                    <td className="border border-slate-800 p-2 text-center">{seq.remainingSessions}</td>
-                    <td className="border border-slate-800 p-2 text-center">
-                      <div className="flex items-center gap-2 justify-center">
-                        <div className="w-12 h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-600" 
-                            style={{ width: `${Math.min(100, (seq.completedSessions / seq.plannedSessions) * 100)}%` }} 
-                          />
-                        </div>
-                        <span className="text-[10px] w-6">{Math.round((seq.completedSessions / seq.plannedSessions) * 100)}%</span>
-                      </div>
-                    </td>
-                    <td className="border border-slate-800 p-2 text-center text-[10px] font-bold uppercase">
-                      {seq.isCompleted ? 'Done' : 'Active'}
-                    </td>
-                  </tr>
-                ))}
+                {overview.sequencesMetrics.map((metric: any) => {
+                  const seq = metric.sequence;
+                  const hasTarget = metric.isPlannedTargetConfigured && metric.plannedSessionsCount !== null;
+                  const isDone = hasTarget && metric.completionPercentage === 100;
+
+                  return (
+                    <tr key={seq.id} className={isDone ? 'bg-slate-50 text-slate-500' : ''}>
+                      <td className="border border-slate-800 p-2 text-center font-bold">{seq.sequenceNumber}</td>
+                      <td className="border border-slate-800 p-2 font-medium">{seq.title}</td>
+                      <td className="border border-slate-800 p-2 text-center">
+                        {hasTarget ? metric.plannedSessionsCount : <span className="text-slate-400 italic font-normal">Target Unconfigured</span>}
+                      </td>
+                      <td className="border border-slate-800 p-2 text-center font-bold text-emerald-700">{metric.completedLessonsCount}</td>
+                      <td className="border border-slate-800 p-2 text-center">
+                        {hasTarget ? metric.remainingSessionsCount : '—'}
+                      </td>
+                      <td className="border border-slate-800 p-2 text-center">
+                        {hasTarget && metric.completionPercentage !== null ? (
+                          <div className="flex items-center gap-2 justify-center">
+                            <div className="w-12 h-2 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-emerald-600" 
+                                style={{ width: `${Math.min(100, metric.completionPercentage)}%` }} 
+                              />
+                            </div>
+                            <span className="text-[10px] w-6">{metric.completionPercentage}%</span>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 italic font-normal">Target Unconfigured</span>
+                        )}
+                      </td>
+                      <td className="border border-slate-800 p-2 text-center text-[10px] font-bold uppercase">
+                        {isDone ? 'Done' : metric.completedLessonsCount > 0 ? 'In Progress' : 'Not Started'}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </PrintableDocument>
