@@ -61,12 +61,23 @@ Because IndexedDB does not have built-in foreign key constraints, all integrity 
    - If `rubricId` is provided, it must belong to `curriculumVersionId` and match any level constraint.
    - Historical lessons and their original references are preserved intact.
 
-6. **Assessment -> Grade Cascade**:
+6. **Lesson -> HomeworkTask Atomic Synchronization**:
+   - Specifying homework details on a `Lesson` automatically synchronizes a linked `HomeworkTask` in `homework` inside the same Dexie transaction.
+   - Removing homework fields deletes the linked `HomeworkTask`.
+   - Deleting a `Lesson` cascades deletion to any linked `HomeworkTask`.
+   - Homework cannot be created for archived classes or archived academic years.
+
+7. **Cahier de Textes & Cahier Journal Derived Scoping**:
+   - `Cahier de Textes` queries require both `academicYearId` and `classId`.
+   - `Cahier Journal` queries lessons for a specific `date` and `academicYearId`.
+   - Both views dynamically resolve curriculum sequence, rubric, and competency metadata via the lesson's own `curriculumVersionId`.
+
+8. **Assessment -> Grade Cascade**:
    - Deleting an `Assessment` deletes all `grades` records referencing that `assessmentId`.
 
-7. **Class Deletion Guard**:
+9. **Class Deletion Guard**:
    - A `class` cannot be deleted if active `studentEnrollments` or `lessons` are attached. It must be archived (`isArchived: true`) instead.
 
-8. **Single Current Academic Year**:
+10. **Single Current Academic Year**:
    - Setting an academic year to `isCurrent: true` automatically demotes all other years to `isCurrent: false` for that school.
    - `AcademicYear.schoolId` is immutable. Archived academic years are strictly read-only.

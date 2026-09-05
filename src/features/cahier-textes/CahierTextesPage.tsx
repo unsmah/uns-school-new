@@ -1,6 +1,6 @@
 /**
  * UNS SCHOOL — Cahier de Textes (دفتر النصوص)
- * Official Class Pedagogical Register for Algerian Middle Schools.
+ * Class Pedagogical Register.
  * STRICTLY DERIVED: Read-only projection per class populated dynamically
  * from authoritative Lesson and linked Homework records.
  */
@@ -21,7 +21,6 @@ import {
   Layers,
   Plus,
   Edit2,
-  Stamp,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import {
@@ -95,25 +94,59 @@ export const CahierTextesPage: React.FC = () => {
         setSelectedClassId(targetClassId);
       }
 
+      let classLessons: Lesson[] = [];
+      let classHomework: HomeworkTask[] = [];
+
       if (targetClassId) {
-        const [classLessons, classHomework] = await Promise.all([
-          lessonRepository.listByClass(targetClassId),
-          homeworkRepository.listByClass(targetClassId),
+        [classLessons, classHomework] = await Promise.all([
+          lessonRepository.listByClassAndAcademicYear(targetClassId, selectedAcademicYear.id),
+          homeworkRepository.listByClassAndAcademicYear(targetClassId, selectedAcademicYear.id),
         ]);
         setLessons(classLessons);
         setHomeworkTasks(classHomework);
+      } else {
+        setLessons([]);
+        setHomeworkTasks([]);
       }
 
-      if (activeCurr) {
-        const rubricList = await curriculumRepository.listRubrics(activeCurr.id);
-        setRubrics(rubricList);
+      // Collect all curriculum versions needed:
+      // Active version + any version referenced by lessons
+      const versionIds = new Set<string>();
+      if (activeCurr) versionIds.add(activeCurr.id);
+      for (const l of classLessons) {
+        if (l.curriculumVersionId) versionIds.add(l.curriculumVersionId);
+      }
 
-        const currentClass = yearClasses.find((c) => c.id === targetClassId);
+      const currentClass = yearClasses.find((c) => c.id === targetClassId);
+
+      // Load rubrics and sequences for all referenced curriculum versions
+      const allRubricsMap = new Map<string, SessionRubricDefinition>();
+      const allSequencesMap = new Map<string, CurriculumSequence>();
+
+      for (const vId of versionIds) {
+        const vRubrics = await curriculumRepository.listRubrics(vId);
+        vRubrics.forEach((r) => allRubricsMap.set(r.id, r));
+
         if (currentClass) {
-          const seqList = await curriculumRepository.listSequences(activeCurr.id, currentClass.levelCode);
-          setSequences(seqList);
+          const vSeqs = await curriculumRepository.listSequences(vId, currentClass.levelCode);
+          vSeqs.forEach((s) => allSequencesMap.set(s.id, s));
         }
       }
+
+      // Ensure every lesson's specific sequence and rubric are resolved even if not in the level list
+      for (const l of classLessons) {
+        if (l.rubricId && !allRubricsMap.has(l.rubricId)) {
+          const r = await curriculumRepository.getRubricById(l.rubricId);
+          if (r) allRubricsMap.set(r.id, r);
+        }
+        if (l.sequenceId && !allSequencesMap.has(l.sequenceId)) {
+          const s = await curriculumRepository.getSequenceById(l.sequenceId);
+          if (s) allSequencesMap.set(s.id, s);
+        }
+      }
+
+      setRubrics(Array.from(allRubricsMap.values()));
+      setSequences(Array.from(allSequencesMap.values()));
     } catch (err) {
       console.error('Failed to load Cahier de Textes data:', err);
     } finally {
@@ -200,7 +233,7 @@ export const CahierTextesPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Official chronological register of sessions taught, learning points, homework assigned, and inspectorate visas.
+            Chronological log of sessions taught, learning points, and assigned homework.
           </p>
         </div>
 
@@ -210,10 +243,10 @@ export const CahierTextesPage: React.FC = () => {
             size="sm"
             onClick={handlePrint}
             className="flex items-center gap-1.5"
-            title="Print official register"
+            title="Print log"
           >
             <Printer className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span>Print Register (A4)</span>
+            <span>Print Log</span>
           </Button>
 
           {!isArchived && selectedClassId && (
@@ -287,13 +320,10 @@ export const CahierTextesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Official Printable Register Header */}
+      {/* Class Pedagogical Log Header */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-center space-y-1">
-        <div className="text-[11px] font-semibold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-          People's Democratic Republic of Algeria — Ministry of National Education
-        </div>
         <h2 className="text-base font-bold text-slate-900 dark:text-white">
-          CAHIER DE TEXTES — OFFICIAL CLASS REGISTER (دفتر النصوص)
+          CAHIER DE TEXTES — CLASS PEDAGOGICAL LOG (دفتر النصوص)
         </h2>
         <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
           Class: {selectedClass ? `${selectedClass.name} (${selectedClass.levelCode})` : '—'} | Academic Year: {selectedAcademicYear?.label || '—'}
@@ -308,7 +338,7 @@ export const CahierTextesPage: React.FC = () => {
             description={
               selectedClass
                 ? `No lessons have been scheduled or logged for ${selectedClass.name} yet.`
-                : 'Please select a class to view its official register.'
+                : 'Please select a class to view its pedagogical log.'
             }
             action={
               !isArchived && selectedClassId ? (
@@ -331,7 +361,6 @@ export const CahierTextesPage: React.FC = () => {
                 <th className="p-3 w-36">Rubric / Stage</th>
                 <th className="p-3">Content / Topic Covered</th>
                 <th className="p-3 w-64">Assigned Homework</th>
-                <th className="p-3 w-28 text-center print:table-cell">Visa / Signature</th>
                 <th className="p-3 w-16 text-center print:hidden">Action</th>
               </tr>
             </thead>
@@ -440,14 +469,6 @@ export const CahierTextesPage: React.FC = () => {
                       ) : (
                         <span className="text-slate-400 italic text-[11px]">None</span>
                       )}
-                    </td>
-
-                    {/* Official Visa & Stamp Placeholder */}
-                    <td className="p-3 text-center border-l border-slate-100 dark:border-slate-800">
-                      <div className="w-20 h-10 border border-dashed border-slate-300 dark:border-slate-700 rounded flex flex-col items-center justify-center mx-auto text-[9px] text-slate-400">
-                        <Stamp className="w-3.5 h-3.5 text-slate-300 mb-0.5" />
-                        <span>Visa / Sig.</span>
-                      </div>
                     </td>
 
                     {/* Action */}

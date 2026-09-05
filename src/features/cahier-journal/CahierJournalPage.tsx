@@ -1,6 +1,6 @@
 /**
  * UNS SCHOOL — Cahier Journal (دفتر اليومية)
- * Official Algerian Middle School English Inspectorate compliance view.
+ * Daily pedagogical log projection.
  * STRICTLY DERIVED: Read-only projection populated dynamically from authoritative Lesson records,
  * linked attendance tallies, curriculum sequences, session rubrics, and homework tasks.
  */
@@ -97,19 +97,55 @@ export const CahierJournalPage: React.FC = () => {
       setLessons(yearLessons);
       setClasses(yearClasses);
 
-      if (activeCurr) {
-        const [rubricList, seqs1, seqs2, seqs3, seqs4, comps] = await Promise.all([
-          curriculumRepository.listRubrics(activeCurr.id),
-          curriculumRepository.listSequences(activeCurr.id, '1MS'),
-          curriculumRepository.listSequences(activeCurr.id, '2MS'),
-          curriculumRepository.listSequences(activeCurr.id, '3MS'),
-          curriculumRepository.listSequences(activeCurr.id, '4MS'),
-          curriculumRepository.listCompetencies(activeCurr.id),
-        ]);
-        setRubrics(rubricList);
-        setSequences([...seqs1, ...seqs2, ...seqs3, ...seqs4]);
-        setCompetencies(comps);
+      // Collect all curriculum versions needed:
+      // Active version + any versions referenced by lessons in this academic year
+      const versionIds = new Set<string>();
+      if (activeCurr) versionIds.add(activeCurr.id);
+      for (const l of yearLessons) {
+        if (l.curriculumVersionId) versionIds.add(l.curriculumVersionId);
       }
+
+      const allRubricsMap = new Map<string, SessionRubricDefinition>();
+      const allSequencesMap = new Map<string, CurriculumSequence>();
+      const allCompetenciesMap = new Map<string, CurriculumCompetency>();
+
+      for (const vId of versionIds) {
+        const [vRubrics, seqs1, seqs2, seqs3, seqs4, vComps] = await Promise.all([
+          curriculumRepository.listRubrics(vId),
+          curriculumRepository.listSequences(vId, '1MS'),
+          curriculumRepository.listSequences(vId, '2MS'),
+          curriculumRepository.listSequences(vId, '3MS'),
+          curriculumRepository.listSequences(vId, '4MS'),
+          curriculumRepository.listCompetencies(vId),
+        ]);
+        vRubrics.forEach((r) => allRubricsMap.set(r.id, r));
+        [...seqs1, ...seqs2, ...seqs3, ...seqs4].forEach((s) => allSequencesMap.set(s.id, s));
+        vComps.forEach((c) => allCompetenciesMap.set(c.id, c));
+      }
+
+      // Ensure every lesson's specific sequence, rubric, and targeted competencies are resolved
+      for (const l of yearLessons) {
+        if (l.rubricId && !allRubricsMap.has(l.rubricId)) {
+          const r = await curriculumRepository.getRubricById(l.rubricId);
+          if (r) allRubricsMap.set(r.id, r);
+        }
+        if (l.sequenceId && !allSequencesMap.has(l.sequenceId)) {
+          const s = await curriculumRepository.getSequenceById(l.sequenceId);
+          if (s) allSequencesMap.set(s.id, s);
+        }
+        if (l.targetedCompetencyIds) {
+          for (const cId of l.targetedCompetencyIds) {
+            if (!allCompetenciesMap.has(cId)) {
+              const c = await curriculumRepository.getCompetencyById(cId);
+              if (c) allCompetenciesMap.set(c.id, c);
+            }
+          }
+        }
+      }
+
+      setRubrics(Array.from(allRubricsMap.values()));
+      setSequences(Array.from(allSequencesMap.values()));
+      setCompetencies(Array.from(allCompetenciesMap.values()));
 
       // Load attendance for today's lessons
       const dateLessons = yearLessons.filter((l) => l.date === selectedDate);
@@ -225,10 +261,10 @@ export const CahierJournalPage: React.FC = () => {
             size="sm"
             onClick={handlePrint}
             className="flex items-center gap-1.5"
-            title="Print daily inspection sheet"
+            title="Print daily log"
           >
             <Printer className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-            <span>Print Sheet (A4)</span>
+            <span>Print Log</span>
           </Button>
 
           {!isArchived && (
@@ -299,13 +335,10 @@ export const CahierJournalPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Official Inspection Printable Header (Visible on print and page) */}
+      {/* Daily Log Header */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-center space-y-1">
-        <div className="text-[11px] font-semibold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-          People's Democratic Republic of Algeria — Ministry of National Education
-        </div>
         <h2 className="text-base font-bold text-slate-900 dark:text-white">
-          CAHIER JOURNAL — DAILY PEDAGOGICAL RECORD
+          CAHIER JOURNAL — DAILY PEDAGOGICAL RECORD (دفتر اليومية)
         </h2>
         <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
           {formattedDateTitle}

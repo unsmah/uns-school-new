@@ -182,7 +182,7 @@ describe('Phase 4 — Unified Lesson Workflow & Derived Projections', () => {
     await db.classes.bulkAdd([class1, class2, archivedClass]);
   });
 
-  it('creates an authoritative Lesson with 5-phase didactic activity steps and retrieves them intact', async () => {
+  it('creates an authoritative Lesson with didactic activity steps and retrieves them intact', async () => {
     const activitySteps: LessonActivityPlan[] = [
       {
         id: 'step-1',
@@ -612,5 +612,251 @@ describe('Phase 4 — Unified Lesson Workflow & Derived Projections', () => {
     expect(class1Hw).toHaveLength(1);
     expect(class1Hw[0].title).toBe('Class 1 Homework Task');
     expect(class1Hw[0].lessonId).toBe('ct-l1');
+  });
+
+  it('strictly scopes Cahier de Textes by classId and academicYearId preventing cross-year leakage', async () => {
+    const prevYearClassId = 'class-prev-year-1ms1';
+    const prevClass: SchoolClass = {
+      id: prevYearClassId,
+      schoolId,
+      academicYearId: archivedYearId,
+      name: '1MS 1', // Same class name in previous year
+      levelCode: '1MS',
+      isArchived: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await db.classes.add(prevClass);
+
+    // Insert previous year historical lesson directly into database (simulating pre-existing archived data)
+    const prevYearLesson: Lesson = {
+      id: 'lesson-prev-year-1',
+      academicYearId: archivedYearId,
+      classId: prevYearClassId,
+      levelCode: '1MS',
+      curriculumVersionId,
+      sequenceId: sequence1Id,
+      rubricId: rubricPresentationId,
+      sessionNumberInSequence: 1,
+      date: '2025-10-10',
+      startTime: '08:00',
+      endTime: '09:00',
+      title: 'Previous Year 1MS1 Lesson',
+      specificObjectives: ['Old Objective'],
+      targetedCompetencyIds: [],
+      materialsAndAids: [],
+      activitySteps: [],
+      assignedHomeworkTitle: 'Previous Year Homework',
+      isCompleted: true,
+      isArchived: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await db.lessons.add(prevYearLesson);
+    await db.homework.add({
+      id: 'hw-prev-year-1',
+      lessonId: 'lesson-prev-year-1',
+      academicYearId: archivedYearId,
+      classId: prevYearClassId,
+      assignedDate: '2025-10-10',
+      dueDate: '2025-10-15',
+      title: 'Previous Year Homework',
+      instructions: 'Complete exercises',
+      isCompleted: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Create current year lesson for current 1MS 1 using lessonRepository.create
+    const currYearLesson: Lesson = {
+      id: 'lesson-curr-year-1',
+      academicYearId: activeYearId,
+      classId: class1Id,
+      levelCode: '1MS',
+      curriculumVersionId,
+      sequenceId: sequence1Id,
+      rubricId: rubricPresentationId,
+      sessionNumberInSequence: 1,
+      date: '2026-10-10',
+      startTime: '08:00',
+      endTime: '09:00',
+      title: 'Current Year 1MS1 Lesson',
+      specificObjectives: ['New Objective'],
+      targetedCompetencyIds: [],
+      materialsAndAids: [],
+      activitySteps: [],
+      assignedHomeworkTitle: 'Current Year Homework',
+      isCompleted: true,
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    await lessonRepository.create(currYearLesson);
+
+    // Verify listByClassAndAcademicYear for current active year
+    const currentYearLessons = await lessonRepository.listByClassAndAcademicYear(class1Id, activeYearId);
+    expect(currentYearLessons).toHaveLength(1);
+    expect(currentYearLessons[0].id).toBe('lesson-curr-year-1');
+    expect(currentYearLessons[0].title).toBe('Current Year 1MS1 Lesson');
+
+    const currentYearHomework = await homeworkRepository.listByClassAndAcademicYear(class1Id, activeYearId);
+    expect(currentYearHomework).toHaveLength(1);
+    expect(currentYearHomework[0].title).toBe('Current Year Homework');
+
+    // Verify listByClassAndAcademicYear for archived year
+    const archivedYearLessons = await lessonRepository.listByClassAndAcademicYear(prevYearClassId, archivedYearId);
+    expect(archivedYearLessons).toHaveLength(1);
+    expect(archivedYearLessons[0].id).toBe('lesson-prev-year-1');
+    expect(archivedYearLessons[0].title).toBe('Previous Year 1MS1 Lesson');
+
+    const archivedYearHomework = await homeworkRepository.listByClassAndAcademicYear(prevYearClassId, archivedYearId);
+    expect(archivedYearHomework).toHaveLength(1);
+    expect(archivedYearHomework[0].title).toBe('Previous Year Homework');
+
+    // Confirm querying current class with archived year yields 0
+    const emptyLessons = await lessonRepository.listByClassAndAcademicYear(class1Id, archivedYearId);
+    expect(emptyLessons).toHaveLength(0);
+
+    const emptyHomework = await homeworkRepository.listByClassAndAcademicYear(class1Id, archivedYearId);
+    expect(emptyHomework).toHaveLength(0);
+  });
+
+  it('preserves historical curriculum version metadata across curriculum updates', async () => {
+    const legacyCurrVersionId = 'curr-legacy-2011';
+    const legacySeqId = 'seq-legacy-1';
+    const legacyRubricId = 'rubric-legacy-1';
+    const legacyCompId = 'comp-legacy-1';
+
+    // Add legacy curriculum version
+    await db.curriculumVersions.add({
+      id: legacyCurrVersionId,
+      code: 'DZ-MS-ENG-2011',
+      title: 'Legacy English Curriculum 2011',
+      status: 'historical',
+      isOfficial: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+
+    await db.curriculumSequences.add({
+      id: legacySeqId,
+      curriculumVersionId: legacyCurrVersionId,
+      levelCode: '1MS',
+      sequenceNumber: 1,
+      title: 'Legacy Sequence 1: Hello World',
+      communicativeObjective: 'Basic greeting formulas',
+      targetedCompetencyIds: [legacyCompId],
+      plannedSessionsCount: 8,
+      order: 1,
+    });
+
+    await db.sessionRubrics.add({
+      id: legacyRubricId,
+      curriculumVersionId: legacyCurrVersionId,
+      code: 'LEGACY_PRACTICE',
+      name: 'Old Practice Rubric',
+      pedagogicalStage: 'Practice',
+      defaultDurationMinutes: 60,
+      order: 1,
+    });
+
+    await db.competencies.add({
+      id: legacyCompId,
+      curriculumVersionId: legacyCurrVersionId,
+      levelCode: '1MS',
+      code: 'LC1',
+      name: 'Legacy Oral Communication',
+      description: 'Legacy competency description',
+      order: 1,
+    });
+
+    // Create lesson referencing legacy curriculum version
+    const legacyLesson: Lesson = {
+      id: 'lesson-legacy-1',
+      academicYearId: archivedYearId,
+      classId: class1Id,
+      levelCode: '1MS',
+      curriculumVersionId: legacyCurrVersionId,
+      sequenceId: legacySeqId,
+      rubricId: legacyRubricId,
+      sessionNumberInSequence: 1,
+      date: '2025-11-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      title: 'Legacy Curriculum Lesson',
+      specificObjectives: ['Legacy Objective'],
+      targetedCompetencyIds: [legacyCompId],
+      materialsAndAids: [],
+      activitySteps: [],
+      isCompleted: true,
+      isArchived: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Create lesson referencing active curriculum version (2016)
+    const modernLesson: Lesson = {
+      id: 'lesson-modern-1',
+      academicYearId: activeYearId,
+      classId: class1Id,
+      levelCode: '1MS',
+      curriculumVersionId: curriculumVersionId, // 2016 version
+      sequenceId: sequence1Id,
+      rubricId: rubricPresentationId,
+      sessionNumberInSequence: 1,
+      date: '2026-11-01',
+      startTime: '08:00',
+      endTime: '09:00',
+      title: 'Modern Curriculum Lesson',
+      specificObjectives: ['Modern Objective'],
+      targetedCompetencyIds: [competencyInteractingId],
+      materialsAndAids: [],
+      activitySteps: [],
+      isCompleted: true,
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Insert legacy lesson directly into DB (representing pre-existing archived data)
+    await db.lessons.add(legacyLesson);
+    // Create modern lesson in active year via repository
+    await lessonRepository.create(modernLesson);
+
+    // Retrieve both lessons
+    const retrievedLegacy = await lessonRepository.getById('lesson-legacy-1');
+    const retrievedModern = await lessonRepository.getById('lesson-modern-1');
+
+    expect(retrievedLegacy?.curriculumVersionId).toBe(legacyCurrVersionId);
+    expect(retrievedLegacy?.sequenceId).toBe(legacySeqId);
+    expect(retrievedLegacy?.rubricId).toBe(legacyRubricId);
+
+    expect(retrievedModern?.curriculumVersionId).toBe(curriculumVersionId);
+    expect(retrievedModern?.sequenceId).toBe(sequence1Id);
+    expect(retrievedModern?.rubricId).toBe(rubricPresentationId);
+
+    // Check sequence lookup from the repository directly
+    const legacySeq = await db.curriculumSequences.get(retrievedLegacy!.sequenceId!);
+    const modernSeq = await db.curriculumSequences.get(retrievedModern!.sequenceId!);
+
+    expect(legacySeq?.title).toBe('Legacy Sequence 1: Hello World');
+    expect(legacySeq?.curriculumVersionId).toBe(legacyCurrVersionId);
+
+    expect(modernSeq?.title).toBe('Me and My Friends');
+    expect(modernSeq?.curriculumVersionId).toBe(curriculumVersionId);
+
+    // Check rubric lookup
+    const legacyRub = await db.sessionRubrics.get(retrievedLegacy!.rubricId!);
+    const modernRub = await db.sessionRubrics.get(retrievedModern!.rubricId!);
+
+    expect(legacyRub?.name).toBe('Old Practice Rubric');
+    expect(modernRub?.name).toBe('I Listen and Do');
+
+    // Check competency lookup
+    const legacyComp = await db.competencies.get(retrievedLegacy!.targetedCompetencyIds[0]);
+    const modernComp = await db.competencies.get(retrievedModern!.targetedCompetencyIds[0]);
+
+    expect(legacyComp?.name).toBe('Legacy Oral Communication');
+    expect(modernComp?.name).toBe('Interact Orally in English');
   });
 });

@@ -1,7 +1,6 @@
 /**
  * UNS SCHOOL — Lesson Activity Steps Editor
- * Rich interactive editor for pedagogical lesson phases and interaction patterns
- * aligned with Algerian Middle School English Inspectorate standards.
+ * Rich interactive editor for pedagogical lesson phases and interaction patterns.
  */
 
 import React from 'react';
@@ -91,7 +90,7 @@ export const ActivityStepsEditor: React.FC<ActivityStepsEditorProps> = ({
     onChange(newSteps.map((s, i) => ({ ...s, stepNumber: i + 1 })));
   };
 
-  const handleLoadAlgerianTemplate = () => {
+  const handleLoadStandardTemplate = () => {
     const template: LessonActivityPlan[] = [
       {
         id: `act-${Date.now()}-1`,
@@ -182,9 +181,9 @@ export const ActivityStepsEditor: React.FC<ActivityStepsEditorProps> = ({
             type="button"
             variant="outline"
             size="sm"
-            onClick={handleLoadAlgerianTemplate}
+            onClick={handleLoadStandardTemplate}
             className="text-[11px] h-7"
-            title="Load standard 5-phase Algerian middle school pedagogical structure"
+            title="Load standard pedagogical lesson structure"
           >
             <Sparkles className="w-3 h-3 mr-1 text-amber-500" />
             Standard Plan
@@ -214,10 +213,10 @@ export const ActivityStepsEditor: React.FC<ActivityStepsEditorProps> = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleLoadAlgerianTemplate}
+              onClick={handleLoadStandardTemplate}
             >
               <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
-              Load Algerian 5-Phase Structure
+              Load Standard Lesson Plan
             </Button>
             <Button type="button" variant="primary" size="sm" onClick={handleAddStep}>
               <Plus className="w-3.5 h-3.5 mr-1.5" />

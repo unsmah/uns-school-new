@@ -1,7 +1,7 @@
 /**
  * UNS SCHOOL — Lesson / Pedagogical Session Modal
  * Authoritative lesson creator and editor supporting full curriculum context,
- * didactic activity plan (5-phase Algerian structure), competencies,
+ * didactic activity plan, competencies,
  * learning objectives, materials & local resources, and homework task anchoring.
  */
 
@@ -593,7 +593,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
                 Targeted Competencies (الكفاءات المستهدفة):
               </label>
               <p className="text-[11px] text-slate-500 mb-2">
-                Select the Algerian curriculum competency domains activated in this session.
+                Select the curriculum competency domains activated in this session.
               </p>
 
               {availableCompetencies.length === 0 ? (

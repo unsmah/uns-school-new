@@ -76,21 +76,30 @@ The application strictly enforces a unidirectional data-flow with clean separati
 - **Archived Academic Year Read-Only Protection**: Once `isArchived: true`, an academic year cannot be modified through ordinary updates (including changes to labels, dates, or current flags). Editability can only be restored through the explicit `unarchive()` repository method.
 - **Class Academic Year & School Immutability**: Classes permanently belong to their assigned academic year and school; `academicYearId` and `schoolId` cannot be mutated after creation.
 
-### 3.4. Classroom Operations & Timetable Architecture (Phase 3 Hardened)
+### 3.4. Classroom Operations & Timetable Architecture (Phase 3)
 - **Timetable Conflict Scoping**:
   - A timetable conflict check is scoped to `academicYearId + classId + dayOfWeek + periodNumber`.
   - Multiple classes can occupy the same period on the same day without throwing conflict errors.
   - Timetable cells support rendering multiple distinct class slots.
-- **Authoritative Lesson Session Model**:
-  - A **`Lesson`** record is the single source of truth for pedagogical execution.
-  - Relational validation ensures `curriculumVersionId` exists, `sequenceId` belongs to the curriculum version and matches the lesson's `levelCode`, and `rubricId` belongs to the curriculum version and level restrictions.
-  - Historical lessons and their original curriculum references are permanently preserved.
 - **Synchronized Attendance & Atomic Roll Call**:
   - `AttendanceRecord` is anchored to a `Lesson`. The attendance date is strictly synchronized to the parent lesson date.
   - Class attendance statistics (`getAttendanceStatsForClass`) are strictly scoped to both `academicYearId` and `classId`.
   - Bulk attendance (`markAllPresent`) implements an atomic pre-validation loop: if any candidate enrollment does not exist, belongs to another class or academic year, or is inactive, the transaction throws an error and performs zero writes.
-- **Phase 4 Isolation**:
-  - `Cahier Journal` and `Cahier de Textes` are scheduled for Phase 4. They remain explicit coming-soon placeholders to prevent premature scope creep.
+
+### 3.5. Unified Lesson Workflow & Derived Projections (Phase 4)
+- **Authoritative Lesson Session Model**:
+  - A **`Lesson`** record is the single source of truth for pedagogical execution, learning targets, didactic activity steps, roll call sessions, and homework assignments.
+  - Relational validation ensures `curriculumVersionId` exists, `sequenceId` belongs to the curriculum version and matches the lesson's `levelCode`, and `rubricId` belongs to the curriculum version and level restrictions.
+  - Historical lessons and their original curriculum references are permanently preserved.
+- **Atomic HomeworkTask Synchronization**:
+  - `lessonRepository` manages the lifecycle of linked `HomeworkTask` records within atomic readwrite database transactions.
+  - Creating or updating a lesson with homework details updates the corresponding `HomeworkTask`. Clearing homework deletes the linked task. Deleting a lesson cascades deletion to the linked homework.
+- **Derived Read-Only Projections**:
+  - **Cahier Journal (دفتر اليومية)**: Dynamically calculated daily view aggregating lessons across all classes for a selected date in the active academic year with live attendance metrics.
+  - **Cahier de Textes (دفتر النصوص)**: Dynamically calculated chronological log per class strictly scoped by `academicYearId + classId`.
+  - Both views are pure derived projections without independent storage tables, preventing state synchronization drift.
+- **Historical Curriculum Version Preservation**:
+  - Projections resolve pedagogical sequence titles, session rubric names, and competencies dynamically from each lesson's own `curriculumVersionId` rather than assuming only the active version.
 
 ---
 

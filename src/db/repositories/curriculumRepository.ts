@@ -97,6 +97,10 @@ export const curriculumRepository = {
     return await query.sortBy('order');
   },
 
+  async getCompetencyById(id: string): Promise<CompetencyDefinition | undefined> {
+    return await db.competencies.get(id);
+  },
+
   async saveCompetency(competency: CompetencyDefinition): Promise<void> {
     await db.competencies.put(competency);
   },
