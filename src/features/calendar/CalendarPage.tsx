@@ -114,8 +114,8 @@ export const CalendarPage: React.FC = () => {
         endDate: eventEndDate || undefined,
         eventType,
         description: eventDesc.trim() || undefined,
-        status: eventStatus,
-        isOfficial: eventStatus === 'official_verified',
+        status: 'user_created',
+        isOfficial: false,
       };
 
       const updatedEvents = [...(activeYear.calendarEvents || []), newEvt];
@@ -292,7 +292,6 @@ export const CalendarPage: React.FC = () => {
             ) : (
               <div className="space-y-2.5">
                 {filteredEvents.map((evt) => {
-                  const isSample = evt.status === 'sample' || !evt.isOfficial;
                   return (
                     <Card key={evt.id} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                       <div className="space-y-1">
@@ -305,13 +304,19 @@ export const CalendarPage: React.FC = () => {
                             {evt.eventType.replace('_', ' ').toUpperCase()}
                           </span>
 
-                          {isSample ? (
+                          {evt.status === 'official_verified' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-300">
+                              Official Verified
+                            </span>
+                          )}
+                          {evt.status === 'sample' && (
                             <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                               Sample Schedule
                             </span>
-                          ) : (
-                            <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                              Official Verified
+                          )}
+                          {evt.status === 'user_created' && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md font-medium bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                              Teacher Created
                             </span>
                           )}
                         </div>
@@ -484,13 +489,12 @@ export const CalendarPage: React.FC = () => {
             />
 
             <Select
-              label="Verification Status"
+              label="Event Provenance"
               value={eventStatus}
               onChange={(e) => setEventStatus(e.target.value as CalendarEvent['status'])}
               options={[
-                { value: 'user_created', label: 'Custom Teacher Note' },
+                { value: 'user_created', label: 'Teacher Created' },
                 { value: 'sample', label: 'Sample Schedule' },
-                { value: 'official_verified', label: 'Official Verified' },
               ]}
             />
           </div>

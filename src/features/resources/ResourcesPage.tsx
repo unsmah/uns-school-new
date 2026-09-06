@@ -202,6 +202,8 @@ export const ResourcesPage: React.FC = () => {
         .map((t) => t.trim())
         .filter(Boolean);
 
+      const safeProvenance = (newProvenance === 'official_verified' ? 'user_created' : newProvenance) || 'user_created';
+
       const newRes: LocalResource = {
         id: `res-custom-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         title: newTitle.trim(),
@@ -214,7 +216,8 @@ export const ResourcesPage: React.FC = () => {
         fileHashSHA256: sha256,
         fileBlob: blob,
         tags,
-        provenance: newProvenance,
+        provenance: safeProvenance,
+        isOfficial: false,
         sourceReference: newSourceRef.trim() || 'Teacher Custom Local File',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -242,9 +245,13 @@ export const ResourcesPage: React.FC = () => {
     { id: 'Lesson Plan', label: 'Lesson Plan Library', icon: BookOpen },
     { id: 'Classroom Activities', label: 'Activities', icon: Layers },
     { id: 'Worksheets', label: 'Worksheets', icon: FileText },
+    { id: 'Grammar', label: 'Grammar', icon: Tag },
+    { id: 'Vocabulary', label: 'Vocabulary', icon: Tag },
     { id: 'Teacher Templates', label: 'Teacher Templates', icon: Sparkles },
     { id: 'Assessment Templates', label: 'Assessment', icon: Award },
-    { id: 'Grammar', label: 'Grammar & Phonology', icon: Tag },
+    { id: 'Classroom Management', label: 'Management', icon: Layers },
+    { id: 'BEM Preparation', label: 'BEM Prep', icon: Award },
+    { id: 'Remediation', label: 'Remediation', icon: Sparkles },
   ];
 
   return (
@@ -398,12 +405,17 @@ export const ResourcesPage: React.FC = () => {
                       </span>
 
                       {/* Provenance Badge */}
-                      {prov === 'teacher_template' && (
+                      {prov === 'user_created' && (
                         <span className="px-2 py-0.5 rounded-md font-medium bg-blue-50 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                          Teacher Created
+                        </span>
+                      )}
+                      {prov === 'teacher_template' && (
+                        <span className="px-2 py-0.5 rounded-md font-medium bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                           Teacher Template
                         </span>
                       )}
-                      {prov === 'sample' && (
+                      {(prov === 'sample' || prov === 'reference') && (
                         <span className="px-2 py-0.5 rounded-md font-medium bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
                           Sample Reference
                         </span>
@@ -612,13 +624,16 @@ export const ResourcesPage: React.FC = () => {
               value={newCategory}
               onChange={(e) => setNewCategory(e.target.value as LocalResource['category'])}
               options={[
-                { value: 'Teacher Templates', label: 'Teacher Templates' },
+                { value: 'Lesson Plan', label: 'Lesson Plan' },
                 { value: 'Classroom Activities', label: 'Classroom Activities' },
                 { value: 'Worksheets', label: 'Worksheets' },
-                { value: 'Lesson Plan', label: 'Lesson Plan' },
-                { value: 'Assessment Templates', label: 'Assessment Templates' },
                 { value: 'Grammar', label: 'Grammar' },
                 { value: 'Vocabulary', label: 'Vocabulary' },
+                { value: 'Teacher Templates', label: 'Teacher Templates' },
+                { value: 'Assessment Templates', label: 'Assessment Templates' },
+                { value: 'Classroom Management', label: 'Classroom Management' },
+                { value: 'BEM Preparation', label: 'BEM Preparation' },
+                { value: 'Remediation', label: 'Remediation' },
               ]}
             />
 
@@ -640,9 +655,9 @@ export const ResourcesPage: React.FC = () => {
               value={newProvenance}
               onChange={(e) => setNewProvenance(e.target.value as LocalResource['provenance'])}
               options={[
+                { value: 'user_created', label: 'Teacher Created' },
                 { value: 'teacher_template', label: 'Teacher Template' },
                 { value: 'sample', label: 'Sample / Reference' },
-                { value: 'official_verified', label: 'Official Verified' },
               ]}
             />
           </div>

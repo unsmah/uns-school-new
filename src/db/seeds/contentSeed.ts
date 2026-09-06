@@ -15,10 +15,8 @@ import { computeSHA256ForText } from '../../services/backup/checksumService';
 export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
   const now = new Date().toISOString();
 
-  // 1. Seed Starter Teaching Resources & Lesson Plan Templates if resources table is empty
-  const existingResourceCount = await db.resources.count();
-  if (existingResourceCount === 0) {
-    const starterResources: LocalResource[] = [];
+  // 1. Seed Starter Teaching Resources & Lesson Plan Templates using per-record idempotency
+  const starterResources: LocalResource[] = [];
 
     // Helper to create a LocalResource with text content & computed hash
     const buildTextResource = async (
@@ -103,7 +101,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
         'res-act-1am-pairs',
         '1MS Oral Interaction Pair-Work Speaking Cards',
         'Printable pair-work dialogue prompts for 1AM learners practicing greetings, age, and hometown exchanges.',
-        'Teacher Templates',
+        'Classroom Activities',
         '1MS',
         ['speaking', '1AM', 'pair-work', 'greetings'],
         `# 1MS Pair-Work Speaking Activity Cards
@@ -143,7 +141,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
         'res-act-2am-shop',
         '2MS Flea Market & Shopping Role-Play Cards',
         'Interactive shopping conversation cards for 2MS pupils inquiring about clothes, prices, and quantities.',
-        'Teacher Templates',
+        'Classroom Activities',
         '2MS',
         ['speaking', '2AM', 'shopping', 'prices', 'vocabulary'],
         `# 2MS Shopping Role-Play Cards
@@ -192,7 +190,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
         'res-ws-4am-monuments',
         '4MS Algerian Monuments Reading Comprehension Worksheet',
         'Reading passage and comprehension exercises on Tipaza Royal Mausoleum and Casbah of Algiers for 4MS learners.',
-        'Worksheet',
+        'Worksheets',
         '4MS',
         ['4AM', 'reading', 'monuments', 'heritage', 'BEM'],
         `# 4MS Reading Comprehension: Algerian World Heritage Sites
@@ -313,7 +311,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
         'res-bem-strategy',
         '4MS BEM Examination Strategy & Time Management Guide',
         'Practical guide for 4AM candidates on tackling the BEM English examination paper efficiently.',
-        'BEM Prep',
+        'BEM Preparation',
         '4MS',
         ['4AM', 'BEM', 'exam-prep', 'strategy'],
         `# 4MS BEM Examination Strategy Guide
@@ -1131,115 +1129,17 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
       )
     );
 
-    // Write all starter resources to database inside Dexie transaction
+    // 1. Write starter resources using deterministic per-record idempotency
     await db.transaction('rw', db.resources, async () => {
       for (const res of starterResources) {
-        await db.resources.add(res);
+        const existing = await db.resources.get(res.id);
+        if (!existing) {
+          await db.resources.add(res);
+        }
       }
     });
-  }
 
-  // 2. Ensure Academic Year has structural sample Calendar Events if none exist
-  const academicYears = await db.academicYears.toArray();
-  for (const year of academicYears) {
-    if (!year.calendarEvents || year.calendarEvents.length === 0) {
-      const sampleEvents: CalendarEvent[] = [
-        {
-          id: `evt-${year.id}-term1-start`,
-          title: 'Start of 1st Trimester (Rentrée scolaire)',
-          startDate: `${year.startDate || '2026-09-20'}`,
-          eventType: 'term_border',
-          description: 'Official commencement of the middle school academic year.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-term1-exams`,
-          title: '1st Trimester Examinations Period',
-          startDate: '2026-11-29',
-          endDate: '2026-12-03',
-          eventType: 'exam_period',
-          description: 'Sample scheduled dates for Term 1 tests and compositions.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-winter-vacation`,
-          title: 'Winter Vacation (Vacances d\'hiver)',
-          startDate: '2026-12-17',
-          endDate: '2027-01-03',
-          eventType: 'holiday',
-          description: 'Sample winter holiday break date range.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-term2-start`,
-          title: 'Start of 2nd Trimester',
-          startDate: '2027-01-03',
-          eventType: 'term_border',
-          description: 'Commencement of Term 2 classes.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-term2-exams`,
-          title: '2nd Trimester Examinations Period',
-          startDate: '2027-03-07',
-          endDate: '2027-03-11',
-          eventType: 'exam_period',
-          description: 'Sample scheduled dates for Term 2 examinations.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-spring-vacation`,
-          title: 'Spring Vacation (Vacances de printemps)',
-          startDate: '2027-03-18',
-          endDate: '2027-04-04',
-          eventType: 'holiday',
-          description: 'Sample spring holiday break date range.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-term3-start`,
-          title: 'Start of 3rd Trimester',
-          startDate: '2027-04-04',
-          eventType: 'term_border',
-          description: 'Commencement of Term 3 classes.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-bem-exam`,
-          title: 'BEM National Examination Period (4MS Candidates)',
-          startDate: '2027-06-06',
-          endDate: '2027-06-08',
-          eventType: 'exam_period',
-          description: 'Sample dates for 4th Year Middle School BEM examination.',
-          status: 'sample',
-          isOfficial: false,
-        },
-        {
-          id: `evt-${year.id}-summer-vacation`,
-          title: 'End of Academic Year & Summer Break',
-          startDate: `${year.endDate || '2027-07-01'}`,
-          eventType: 'holiday',
-          description: 'Sample official end of school year.',
-          status: 'sample',
-          isOfficial: false,
-        },
-      ];
-
-      await db.academicYears.update(year.id, {
-        calendarEvents: sampleEvents,
-        updatedAt: now,
-      });
-    }
-  }
-
-  // 3. Ensure a default AcademicYear exists if academicYears table is completely empty
+  // 2. Ensure a default AcademicYear exists if academicYears table is completely empty
   const yearCount = await db.academicYears.count();
   if (yearCount === 0) {
     const schools = await db.schools.toArray();
@@ -1261,7 +1161,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
       id: 'ay-2026-2027',
       schoolId: school.id,
       label: '2026-2027',
-      startDate: '2026-09-20',
+      startDate: '2026-09-06',
       endDate: '2027-07-01',
       isCurrent: true,
       isArchived: false,
@@ -1272,7 +1172,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
           id: 'term-1-2026',
           termNumber: 1,
           name: '1st Trimester (الفصل الأول)',
-          startDate: '2026-09-20',
+          startDate: '2026-09-06',
           endDate: '2026-12-17',
           examinationStartDate: '2026-11-29',
           examinationEndDate: '2026-12-03',
@@ -1300,11 +1200,11 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
         {
           id: 'evt-ay-2026-2027-rentree',
           title: 'Start of 1st Trimester (Rentrée scolaire)',
-          startDate: '2026-09-20',
+          startDate: '2026-09-06',
           eventType: 'term_border',
-          description: 'Official commencement of the 2026-2027 academic year.',
-          status: 'sample',
-          isOfficial: false,
+          description: 'Official start date of the 2026–2027 academic year for pupils (Ministry of National Education announcement, July 30, 2026).',
+          status: 'official_verified',
+          isOfficial: true,
         },
         {
           id: 'evt-ay-2026-2027-t1-exams',
@@ -1312,7 +1212,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
           startDate: '2026-11-29',
           endDate: '2026-12-03',
           eventType: 'exam_period',
-          description: 'Sample scheduled dates for Term 1 tests and compositions.',
+          description: 'Sample planning date — verify against the latest official Ministry calendar.',
           status: 'sample',
           isOfficial: false,
         },
@@ -1322,7 +1222,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
           startDate: '2026-12-17',
           endDate: '2027-01-03',
           eventType: 'holiday',
-          description: 'Sample winter holiday break date range.',
+          description: 'Sample planning date — verify against the latest official Ministry calendar.',
           status: 'sample',
           isOfficial: false,
         },
@@ -1332,7 +1232,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
           startDate: '2027-03-18',
           endDate: '2027-04-04',
           eventType: 'holiday',
-          description: 'Sample spring holiday break date range.',
+          description: 'Sample planning date — verify against the latest official Ministry calendar.',
           status: 'sample',
           isOfficial: false,
         },
@@ -1342,7 +1242,7 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
           startDate: '2027-06-06',
           endDate: '2027-06-08',
           eventType: 'exam_period',
-          description: 'Sample dates for 4th Year Middle School BEM examination.',
+          description: 'Sample planning date — verify against the latest official Ministry calendar.',
           status: 'sample',
           isOfficial: false,
         },
@@ -1352,5 +1252,124 @@ export async function seedContentData(db: UnsSchoolDatabase): Promise<void> {
     };
 
     await db.academicYears.add(defaultYear);
+  }
+
+  // 3. Merge starter Calendar Events into Academic Years safely using per-record idempotency
+  const academicYears = await db.academicYears.toArray();
+  for (const year of academicYears) {
+    const sampleEvents: CalendarEvent[] = [
+      {
+        id: `evt-${year.id}-term1-start`,
+        title: 'Start of 1st Trimester (Rentrée scolaire)',
+        startDate: year.id === 'ay-2026-2027' ? '2026-09-06' : (year.startDate || '2026-09-06'),
+        eventType: 'term_border',
+        description: 'Official start date of the 2026–2027 academic year for pupils (Ministry of National Education announcement, July 30, 2026).',
+        status: 'official_verified',
+        isOfficial: true,
+      },
+      {
+        id: `evt-${year.id}-term1-exams`,
+        title: '1st Trimester Examinations Period',
+        startDate: '2026-11-29',
+        endDate: '2026-12-03',
+        eventType: 'exam_period',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-winter-vacation`,
+        title: 'Winter Vacation (Vacances d\'hiver)',
+        startDate: '2026-12-17',
+        endDate: '2027-01-03',
+        eventType: 'holiday',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-term2-start`,
+        title: 'Start of 2nd Trimester',
+        startDate: '2027-01-03',
+        eventType: 'term_border',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-term2-exams`,
+        title: '2nd Trimester Examinations Period',
+        startDate: '2027-03-07',
+        endDate: '2027-03-11',
+        eventType: 'exam_period',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-spring-vacation`,
+        title: 'Spring Vacation (Vacances de printemps)',
+        startDate: '2027-03-18',
+        endDate: '2027-04-04',
+        eventType: 'holiday',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-term3-start`,
+        title: 'Start of 3rd Trimester',
+        startDate: '2027-04-04',
+        eventType: 'term_border',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-bem-exam`,
+        title: 'BEM National Examination Period (4MS Candidates)',
+        startDate: '2027-06-06',
+        endDate: '2027-06-08',
+        eventType: 'exam_period',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+      {
+        id: `evt-${year.id}-summer-vacation`,
+        title: 'End of Academic Year & Summer Break',
+        startDate: `${year.endDate || '2027-07-01'}`,
+        eventType: 'holiday',
+        description: 'Sample planning date — verify against the latest official Ministry calendar.',
+        status: 'sample',
+        isOfficial: false,
+      },
+    ];
+
+    const existingEvents = year.calendarEvents || [];
+    const mergedEvents = [...existingEvents];
+    let updated = false;
+
+    for (const sampleEvt of sampleEvents) {
+      const idx = mergedEvents.findIndex((e) => e.id === sampleEvt.id);
+      if (idx === -1) {
+        mergedEvents.push(sampleEvt);
+        updated = true;
+      } else {
+        // Ensure start date for term 1 start event is updated to official date
+        if (sampleEvt.status === 'official_verified' && mergedEvents[idx].status !== 'user_created') {
+          mergedEvents[idx] = sampleEvt;
+          updated = true;
+        }
+      }
+    }
+
+    if (updated || year.startDate === '2026-09-20') {
+      await db.academicYears.update(year.id, {
+        startDate: year.id === 'ay-2026-2027' ? '2026-09-06' : year.startDate,
+        calendarEvents: mergedEvents,
+        updatedAt: now,
+      });
+    }
   }
 }

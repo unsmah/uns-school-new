@@ -100,7 +100,7 @@ describe('Phase 9: Backup & Restore System', () => {
     const resource: LocalResource = {
       id: 'res-101',
       title: 'Grammar Worksheet 1AM',
-      category: 'Worksheet',
+      category: 'Worksheets',
       fileName: 'worksheet1.pdf',
       fileMimeType: 'application/pdf',
       fileSizeBytes: binaryContent.byteLength,

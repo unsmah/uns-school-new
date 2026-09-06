@@ -86,23 +86,30 @@ export interface LessonTemplatePayload {
   differentiationNotes?: string;
 }
 
+export type ResourceCategory =
+  | 'Lesson Plan'
+  | 'Classroom Activities'
+  | 'Worksheets'
+  | 'Grammar'
+  | 'Vocabulary'
+  | 'Teacher Templates'
+  | 'Assessment Templates'
+  | 'Classroom Management'
+  | 'BEM Preparation'
+  | 'Remediation';
+
+export type ResourceProvenance =
+  | 'official_verified'
+  | 'teacher_template'
+  | 'sample'
+  | 'reference'
+  | 'user_created';
+
 export interface LocalResource {
   id: string;
   title: string;
   description?: string;
-  category:
-    | 'Worksheet'
-    | 'Lesson Plan'
-    | 'Exam / Test'
-    | 'Flashcards'
-    | 'Audio / Video'
-    | 'Grammar'
-    | 'Vocabulary'
-    | 'BEM Prep'
-    | 'Teacher Templates'
-    | 'Classroom Management'
-    | 'Remediation'
-    | 'Assessment Templates';
+  category: ResourceCategory;
   levelCode?: string;
   sequenceNumber?: number;
   fileName: string;
@@ -111,7 +118,8 @@ export interface LocalResource {
   fileHashSHA256: string;
   fileBlob?: Blob; // Stored in IndexedDB
   tags: string[];
-  provenance?: 'official_verified' | 'teacher_template' | 'sample' | 'user_created' | 'reference' | 'community_reference';
+  provenance?: ResourceProvenance;
+  isOfficial?: boolean;
   sourceReference?: string;
   templatePayload?: LessonTemplatePayload;
   createdAt: string;
