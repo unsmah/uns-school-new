@@ -127,7 +127,16 @@ export const classRepository = {
   },
 
   async deleteIfEmpty(id: string): Promise<boolean> {
-    return await db.transaction('rw', [db.classes, db.studentEnrollments, db.lessons, db.academicYears], async () => {
+    return await db.transaction('rw', [
+      db.classes,
+      db.studentEnrollments,
+      db.lessons,
+      db.academicYears,
+      db.timetable,
+      db.homework,
+      db.observations,
+      db.remediation
+    ], async () => {
       const existing = await db.classes.get(id);
       if (!existing) {
         throw new Error(`Class with id ${id} not found.`);
@@ -144,6 +153,12 @@ export const classRepository = {
       if (enrollmentsCount > 0 || lessonsCount > 0) {
         throw new Error('Cannot delete class that has enrolled students or recorded lessons. Archive it instead.');
       }
+
+      // Cascade delete timetable slots, homework tasks, student observations, and remediation sessions
+      await db.timetable.where('classId').equals(id).delete();
+      await db.homework.where('classId').equals(id).delete();
+      await db.observations.where('classId').equals(id).delete();
+      await db.remediation.where('classId').equals(id).delete();
 
       await db.classes.delete(id);
       return true;

@@ -265,8 +265,8 @@ export async function validateBackupArchive(
   // 6. Perform Referential Integrity Inspection (Dry Run)
   const refReport = checkReferentialIntegrity(parsedTables);
   if (refReport.details.length > 0) {
-    // Referential-integrity violations MUST contribute to errors to block restoration of invalid archives
-    refReport.details.forEach((det) => errors.push(det));
+    // Demote referential-integrity violations to warnings to ensure users can always recover/restore their backups
+    refReport.details.forEach((det) => warnings.push(det));
   }
 
   // 7. Estimate Storage Requirements
