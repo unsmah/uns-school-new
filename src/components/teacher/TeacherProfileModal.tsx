@@ -509,13 +509,36 @@ export const TeacherProfileModal: React.FC<TeacherProfileModalProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
               <Select
-                label={language === 'ar' ? 'الدرجة (Échelon)' : 'Echelon (1 - 12)'}
-                value={String(formData.echelon || 3)}
+                label={
+                  language === 'ar'
+                    ? 'الدرجة (0 - 12)'
+                    : language === 'fr'
+                    ? 'Échelon (0 - 12)'
+                    : 'Echelon (0 - 12)'
+                }
+                value={formData.echelon !== undefined && formData.echelon !== null && formData.echelon !== '' ? String(formData.echelon) : '3'}
                 onChange={(e) => handleChange('echelon', Number(e.target.value))}
-                options={Array.from({ length: 12 }, (_, i) => ({
-                  value: String(i + 1),
-                  label: language === 'ar' ? `الدرجة ${i + 1}` : `Échelon ${i + 1}`,
-                }))}
+                options={Array.from({ length: 13 }, (_, i) => {
+                  const val = i; // 0 to 12
+                  let labelText = '';
+                  if (val === 0) {
+                    labelText = language === 'ar'
+                      ? 'الدرجة 0 (متربص جديد)'
+                      : language === 'fr'
+                      ? 'Échelon 0 (Stagiaire)'
+                      : 'Echelon 0 (New Employee)';
+                  } else {
+                    labelText = language === 'ar'
+                      ? `الدرجة ${val}`
+                      : language === 'fr'
+                      ? `Échelon ${val}`
+                      : `Echelon ${val}`;
+                  }
+                  return {
+                    value: String(val),
+                    label: labelText,
+                  };
+                })}
               />
 
               <Input

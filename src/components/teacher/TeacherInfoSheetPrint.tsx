@@ -148,7 +148,10 @@ export const TeacherInfoSheetPrint: React.FC<TeacherInfoSheetPrintProps> = ({
               <div>
                 <p className="text-[10px] text-gray-600 font-semibold">Échelon & Date d'effet / الدرجة:</p>
                 <p className="font-bold">
-                  Échelon {teacher.echelon || '—'} {teacher.echelonDate ? `(${teacher.echelonDate})` : ''}
+                  {teacher.echelon !== undefined && teacher.echelon !== null && teacher.echelon !== ''
+                    ? `Échelon ${teacher.echelon}`
+                    : '—'}{' '}
+                  {teacher.echelonDate ? `(${teacher.echelonDate})` : ''}
                 </p>
               </div>
             </div>

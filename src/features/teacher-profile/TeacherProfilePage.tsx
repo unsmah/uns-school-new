@@ -198,7 +198,9 @@ export const TeacherProfilePage: React.FC = () => {
                 <span className="px-2.5 py-1 rounded-lg bg-white/15 text-[11px] font-medium backdrop-blur-xs flex items-center gap-1.5">
                   <Award className="w-3.5 h-3.5 text-amber-300" />
                   <span>
-                    {language === 'ar' ? `الدرجة: ${profile.echelon || 3}` : `Échelon: ${profile.echelon || 3}`}
+                    {language === 'ar'
+                      ? `الدرجة: ${profile.echelon !== undefined && profile.echelon !== null && profile.echelon !== '' ? profile.echelon : 3}`
+                      : `Échelon: ${profile.echelon !== undefined && profile.echelon !== null && profile.echelon !== '' ? profile.echelon : 3}`}
                   </span>
                 </span>
 
@@ -336,7 +338,7 @@ export const TeacherProfilePage: React.FC = () => {
               <div className="flex justify-between py-1.5 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400">{language === 'ar' ? 'الدرجة وتاريخ السريان:' : 'Echelon & Date:'}</span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  Échelon {profile.echelon || 3} {profile.echelonDate ? `(${profile.echelonDate})` : ''}
+                  {language === 'ar' ? 'الدرجة' : 'Échelon'} {profile.echelon !== undefined && profile.echelon !== null && profile.echelon !== '' ? profile.echelon : 3} {profile.echelonDate ? `(${profile.echelonDate})` : ''}
                 </span>
               </div>
 

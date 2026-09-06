@@ -345,7 +345,7 @@ export const DashboardPage: React.FC = () => {
       }
     }
 
-    if (echelon) {
+    if (echelon !== undefined && echelon !== null && echelon !== '') {
       const echelonLabel = language === 'ar' ? `الدرجة ${echelon}` : language === 'fr' ? `Échelon ${echelon}` : `Step ${echelon}`;
       return `${rankName} • ${echelonLabel}`;
     }
@@ -837,7 +837,7 @@ export const DashboardPage: React.FC = () => {
                 <strong className="font-semibold text-slate-900 dark:text-white">
                   {language === 'ar' ? 'الدرجة:' : 'Échelon:'}
                 </strong>{' '}
-                {teacherProfile?.echelon
+                {teacherProfile?.echelon !== undefined && teacherProfile?.echelon !== null && teacherProfile?.echelon !== ''
                   ? `${language === 'ar' ? 'الدرجة ' : 'Échelon '}${teacherProfile.echelon}`
                   : 'Échelon 3'}
               </span>

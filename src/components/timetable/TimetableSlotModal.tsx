@@ -153,6 +153,27 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
 
     setIsSubmitting(true);
     try {
+      // Prevent overlapping slots on same Day and Period
+      const allSlots = await timetableRepository.listByAcademicYear(academicYearId);
+      const conflict = allSlots.find(
+        (s) =>
+          s.dayOfWeek === dayOfWeek &&
+          s.periodNumber === periodNumber &&
+          (!existingSlot || s.id !== existingSlot.id)
+      );
+
+      if (conflict) {
+        setError(
+          language === 'ar'
+            ? 'هناك حصة مبرمجة بالفعل في هذا اليوم وفي هذه الفترة. يسمح بحصة واحدة فقط.'
+            : language === 'fr'
+            ? 'Un créneau est déjà programmé pour ce jour et cette période. Un seul créneau est autorisé.'
+            : 'A slot is already scheduled for this day and period. Only one slot is allowed.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       if (existingSlot) {
         await timetableRepository.update(existingSlot.id, {
           dayOfWeek,
