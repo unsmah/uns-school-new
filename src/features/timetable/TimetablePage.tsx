@@ -860,7 +860,9 @@ export const TimetablePage: React.FC = () => {
                 size: A4 landscape;
                 margin: 0;
               }
-              body {
+              html, body {
+                overflow: visible !important;
+                height: auto !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 background-color: #ffffff !important;
@@ -872,17 +874,33 @@ export const TimetablePage: React.FC = () => {
                 display: none !important;
               }
               #timetable-print-overlay {
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
+                position: static !important;
                 width: 100% !important;
-                height: 100% !important;
+                height: auto !important;
                 background: white !important;
                 padding: 0 !important;
                 margin: 0 !important;
+                overflow: visible !important;
+                display: block !important;
               }
               .no-print {
                 display: none !important;
+              }
+              .print-container-override {
+                border: none !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                max-width: none !important;
+                overflow: visible !important;
+                display: block !important;
+              }
+              .print-container-override > div {
+                display: block !important;
+                width: auto !important;
+                height: auto !important;
               }
               #timetable-print-sheet {
                 border: none !important;
@@ -897,6 +915,7 @@ export const TimetablePage: React.FC = () => {
                 box-sizing: border-box !important;
                 page-break-inside: avoid !important;
                 background-color: #ffffff !important;
+                display: flex !important; /* Maintain standard flex layout for print output formatting */
               }
             }
           `}</style>
@@ -971,7 +990,7 @@ export const TimetablePage: React.FC = () => {
           </div>
 
           {/* Scalable Container representing A4 Landscape Page */}
-          <div className="w-full max-w-5xl overflow-x-auto p-4 flex justify-center bg-white dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-inner no-print mb-8">
+          <div className="w-full max-w-5xl overflow-x-auto p-4 flex justify-center bg-white dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-900 shadow-inner print-container-override mb-8">
             {/* Aspect lock wrapper */}
             <div>
               <div
