@@ -36,6 +36,17 @@ export interface TermPeriod {
   examinationEndDate?: string;
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  startDate: string; // ISO Date YYYY-MM-DD
+  endDate?: string;   // ISO Date YYYY-MM-DD
+  eventType: 'holiday' | 'exam_period' | 'pedagogical_day' | 'term_border' | 'school_event' | 'teacher_note';
+  description?: string;
+  status: 'official_verified' | 'sample' | 'user_created';
+  isOfficial?: boolean;
+}
+
 export interface AcademicYear {
   id: string;
   schoolId: string;
@@ -45,6 +56,7 @@ export interface AcademicYear {
   isCurrent: boolean;
   isArchived: boolean; // Historical years become read-only
   terms: TermPeriod[];
+  calendarEvents?: CalendarEvent[];
   activeCurriculumVersionId?: string;
   activeGradingSchemeId?: string;
   createdAt: string;

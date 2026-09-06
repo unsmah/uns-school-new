@@ -19,6 +19,8 @@ import type {
   GradingScheme,
 } from '../../types';
 
+import { seedContentData } from './contentSeed';
+
 export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
   const now = new Date().toISOString();
 
@@ -489,4 +491,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
       await db.gradingSchemes.add(officialScheme);
     });
   }
+
+  // 3. Seed Starter Content Resources, Lesson Templates, and Calendar Events
+  await seedContentData(db);
 }

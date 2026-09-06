@@ -28,6 +28,7 @@ import { lessonRepository, curriculumRepository, resourceRepository } from '../.
 import type {
   Lesson,
   LessonActivityPlan,
+  InteractionPattern,
   SchoolClass,
   CurriculumSequence,
   SessionRubricDefinition,
@@ -46,6 +47,7 @@ interface LessonModalProps {
   defaultClassId?: string;
   defaultSequenceId?: string;
   defaultDate?: string;
+  initialTemplatePayload?: import('../../types').LessonTemplatePayload | null;
   onSaved: (lesson: Lesson) => void;
 }
 
@@ -68,6 +70,7 @@ export const LessonModal: React.FC<LessonModalProps> = ({
   defaultClassId,
   defaultSequenceId,
   defaultDate,
+  initialTemplatePayload,
   onSaved,
 }) => {
   const [activeTab, setActiveTab] = useState<'core' | 'objectives' | 'activities' | 'materials_homework' | 'reflection'>('core');
@@ -230,10 +233,38 @@ export const LessonModal: React.FC<LessonModalProps> = ({
       setHomeworkDueDate('');
       setTeacherReflectionNotes('');
       setIsCompleted(false);
+
+      if (initialTemplatePayload) {
+        setTitle(initialTemplatePayload.title || '');
+        setObjectives(initialTemplatePayload.specificObjectives || []);
+        if (initialTemplatePayload.activitySteps) {
+          setActivitySteps(
+            initialTemplatePayload.activitySteps.map((step, i) => ({
+              id: `step-${Date.now()}-${i}`,
+              stepNumber: step.stepNumber || i + 1,
+              phaseName: step.phaseName || 'Activity Phase',
+              allocatedMinutes: step.allocatedMinutes || 15,
+              teacherRoleAndInstructions: step.teacherRoleAndInstructions || '',
+              studentRoleAndTasks: step.studentRoleAndTasks || '',
+              interactionPattern: (step.interactionPattern as InteractionPattern) || 'Teacher-Pupil',
+              materialsAndAids: step.materialsAndAids,
+            }))
+          );
+        }
+        if (initialTemplatePayload.materialsAndAids) {
+          setSelectedMaterials(initialTemplatePayload.materialsAndAids);
+        }
+        if (initialTemplatePayload.homeworkTitle) {
+          setHomeworkTitle(initialTemplatePayload.homeworkTitle);
+        }
+        if (initialTemplatePayload.homeworkInstructions) {
+          setHomeworkInstructions(initialTemplatePayload.homeworkInstructions);
+        }
+      }
     }
     setActiveTab('core');
     setError(null);
-  }, [existingLesson, defaultClassId, defaultSequenceId, defaultDate, classes, isOpen]);
+  }, [existingLesson, defaultClassId, defaultSequenceId, defaultDate, classes, isOpen, initialTemplatePayload]);
 
   // Set default rubric if empty
   useEffect(() => {

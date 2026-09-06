@@ -1,6 +1,6 @@
 # UNS SCHOOL — Project State
 
-**Phase**: Phase 10 — Hardening, Accessibility & Offline Stress Testing (Implementation Complete — External Audit Pending)
+**Phase**: Phase 11 — Initial Content & Teacher Productivity Data (Implementation Complete — External Audit Pending)
 **Architecture**: 100% Client-Only SPA (React 19.0.1, Vite, TypeScript, Tailwind CSS, Dexie.js / IndexedDB)  
 **Target User**: Middle school English teachers in Algeria (1AM–4AM / 1MS–4MS)  
 **Data Privacy**: All data resides strictly on the local client device via IndexedDB. No external servers, APIs, or cloud sync exist.
@@ -108,6 +108,20 @@
 - **Security & Zero-Network Audit**:
   - Zero external HTTP fetch, API requests, cloud dependencies, or remote script execution.
   - High-precision student NIN search supported without exposing sensitive civil fields in public lists.
+
+### 8. Initial Content, Teaching Resources & Academic Calendar (Phase 11 — Complete)
+- **Provenance Transparency & Content Integrity**:
+  - All seeded starter resources, lesson templates, and calendar events are explicitly labeled with provenance tags (`teacher_template`, `sample`, `official_verified`).
+  - No seeded content makes false claims of official Ministry status unless verified; sample schedules are clearly flagged.
+- **Starter Local Resource Library**:
+  - 12 high-quality starter local resources seeded into IndexedDB covering 1MS–4MS oral interaction cards, shopping role-play prompts, diagnostic rubrics, reading passages on Algerian UNESCO heritage (Tipaza, Casbah), phonology guides, and writing peer-review checklists.
+- **Ready-to-Use Lesson Plan Templates & Workflow**:
+  - 10 complete lesson plan templates covering 1AM to 4AM sequences with structured communicative objectives, pedagogical stages, allocated step-by-step activities, interaction patterns (T-S, S-S, Individual, Group), and homework tasks.
+  - "Use as Template" workflow enables teachers to select any lesson template, pick a class date, and instantiate an independent historical `Lesson` record without hard couplings.
+- **Academic Calendar & Weekly Timetable Workspace**:
+  - Academic Year date ranges for Trimesters 1, 2, and 3 populated with exam periods, national holidays, and school event dates.
+  - Interactive Sunday–Thursday weekly timetable grid supporting period slot visualization across all classes.
+  - Invariant protection: Content seeding is deterministic, idempotent, and never overwrites teacher-created records.
 
 ---
 
