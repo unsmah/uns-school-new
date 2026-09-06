@@ -13,7 +13,8 @@ import {
   type StorageTelemetry,
 } from '../../services/storageTelemetryService';
 import { db } from '../../db/database';
-import { HardDrive, ShieldCheck, AlertTriangle, RefreshCw, Globe, Moon, Sun, Laptop } from 'lucide-react';
+import { HardDrive, ShieldCheck, AlertTriangle, RefreshCw, Globe, Moon, Sun, Laptop, User, ArrowRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export const SettingsPage: React.FC = () => {
   const { language, setLanguage, t } = useI18n();
@@ -39,6 +40,7 @@ export const SettingsPage: React.FC = () => {
         assessments: await db.assessments.count(),
         grades: await db.grades.count(),
         curriculumVersions: await db.curriculumVersions.count(),
+        teacherProfile: await db.teacherProfile.count(),
       };
       setTableCounts(counts);
     } catch {
@@ -62,16 +64,16 @@ export const SettingsPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       {/* Header */}
-      <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white break-words">
             Workspace Settings & Diagnostics
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 break-words">
             Configure display preferences, review storage telemetry, and inspect database state.
           </p>
         </div>
-        <Badge variant="neutral">Settings v1</Badge>
+        <Badge variant="neutral" className="self-start sm:self-auto shrink-0">Settings v1</Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

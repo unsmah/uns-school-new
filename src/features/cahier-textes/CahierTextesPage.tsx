@@ -22,6 +22,7 @@ import {
   Edit2,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   lessonRepository,
   classRepository,
@@ -47,6 +48,7 @@ import type {
 export const CahierTextesPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   // Class and sequence filters
   const [selectedClassId, setSelectedClassId] = useState<string>(
@@ -65,7 +67,7 @@ export const CahierTextesPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load classes and curriculum reference data
   const loadData = useCallback(async () => {
@@ -209,26 +211,24 @@ export const CahierTextesPage: React.FC = () => {
   const completedSessionsCount = lessons.filter((l) => l.isCompleted).length;
   const totalHomeworkCount = homeworkTasks.length;
 
-  if (isLoading) {
-    return <LoadingState message="Compiling class Cahier de Textes register..." />;
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-4">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <FileText className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Cahier de Textes (دفتر النصوص)
+          <div className="flex flex-wrap items-center gap-2">
+            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white break-words">
+              {language === 'ar' ? 'دفتر النصوص' : language === 'fr' ? 'Cahier de Textes' : 'Cahier de Textes'}
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              Derived Register
+            <span className="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {language === 'ar' ? 'سجل بيداغوجي مشتق' : 'Derived Register'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Chronological log of sessions taught, learning points, and assigned homework.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'السجل الزمني للحصص المنجزة، التعلمات المحققة، والواجبات المنزلية المقررة للفوج.'
+              : 'Chronological log of sessions taught, learning points, and assigned homework.'}
           </p>
         </div>
 
@@ -241,23 +241,23 @@ export const CahierTextesPage: React.FC = () => {
               className="flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              <span>Log Session</span>
+              <span>{language === 'ar' ? 'تسجيل حصة' : language === 'fr' ? 'Enregistrer séance' : 'Log Session'}</span>
             </Button>
           )}
         </div>
       </div>
 
       {/* Control Bar: Class Division & Sequence Filters */}
-      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
-            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Class Division (الفوج):
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 shrink-0">
+              {language === 'ar' ? 'الفوج التربوي:' : language === 'fr' ? 'Classe:' : 'Class:'}
             </label>
             <select
               value={selectedClassId}
               onChange={(e) => handleClassChange(e.target.value)}
-              className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold"
+              className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold min-w-[120px]"
             >
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -267,18 +267,22 @@ export const CahierTextesPage: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <label className="text-xs text-slate-500 font-medium">Sequence:</label>
+          <div className="flex items-center gap-2 max-w-full">
+            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <label className="text-xs text-slate-500 font-medium shrink-0">
+              {language === 'ar' ? 'المقطع التعلمي:' : language === 'fr' ? 'Séquence:' : 'Sequence:'}
+            </label>
             <select
               value={selectedSequenceId}
               onChange={(e) => setSelectedSequenceId(e.target.value)}
-              className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium"
+              className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium min-w-[140px] max-w-[220px] sm:max-w-[280px] truncate"
             >
-              <option value="ALL">All Sequences (جميع المقاطع)</option>
+              <option value="ALL">
+                {language === 'ar' ? 'جميع المقاطع' : language === 'fr' ? 'Toutes les séquences' : 'All Sequences'}
+              </option>
               {sequences.map((s) => (
                 <option key={s.id} value={s.id}>
-                  Seq {s.sequenceNumber}: {s.title}
+                  {language === 'ar' ? `المقطع ${s.sequenceNumber}: ${s.title}` : `Seq ${s.sequenceNumber}: ${s.title}`}
                 </option>
               ))}
             </select>
@@ -286,31 +290,33 @@ export const CahierTextesPage: React.FC = () => {
         </div>
 
         {/* Register Progress Stats */}
-        <div className="flex items-center gap-3 text-xs">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
-            <BookOpen className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Total Sessions: <strong>{totalSessionsCount}</strong></span>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs pt-1 lg:pt-0 border-t lg:border-t-0 border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium whitespace-nowrap">
+            <BookOpen className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span>{language === 'ar' ? 'مجموع الحصص:' : 'Total Sessions:'} <strong>{totalSessionsCount}</strong></span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-medium border border-emerald-200 dark:border-emerald-800">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Taught: <strong>{completedSessionsCount}</strong></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-medium border border-emerald-200 dark:border-emerald-800 whitespace-nowrap">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>{language === 'ar' ? 'المنجزة:' : 'Taught:'} <strong>{completedSessionsCount}</strong></span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium border border-amber-200 dark:border-amber-800">
-            <PenTool className="w-3.5 h-3.5" />
-            <span>Homework: <strong>{totalHomeworkCount}</strong></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-medium border border-amber-200 dark:border-amber-800 whitespace-nowrap">
+            <PenTool className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>{language === 'ar' ? 'الواجبات:' : 'Homework:'} <strong>{totalHomeworkCount}</strong></span>
           </div>
         </div>
       </div>
 
       {/* Class Pedagogical Log Header */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-center space-y-1">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">
-          CAHIER DE TEXTES — CLASS PEDAGOGICAL LOG (دفتر النصوص)
+        <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+          {language === 'ar' ? 'دفتر النصوص — السجل البيداغوجي للفوج' : 'CAHIER DE TEXTES — CLASS PEDAGOGICAL LOG'}
         </h2>
         <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-          Class: {selectedClass ? `${selectedClass.name} (${selectedClass.levelCode})` : '—'} | Academic Year: {selectedAcademicYear?.label || '—'}
+          {language === 'ar'
+            ? `الفوج: ${selectedClass ? `${selectedClass.name} (${selectedClass.levelCode})` : '—'} | الموسم الدراسي: ${selectedAcademicYear?.label || '—'}`
+            : `Class: ${selectedClass ? `${selectedClass.name} (${selectedClass.levelCode})` : '—'} | Academic Year: ${selectedAcademicYear?.label || '—'}`}
         </div>
       </div>
 

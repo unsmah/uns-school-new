@@ -25,6 +25,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   lessonRepository,
   classRepository,
@@ -53,6 +54,7 @@ export const CahierJournalPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   // Date and Class filters
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -74,7 +76,7 @@ export const CahierJournalPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Load all required reference and lesson data for the active year
   const loadData = useCallback(async () => {
@@ -227,26 +229,24 @@ export const CahierJournalPage: React.FC = () => {
     }
   }, [selectedDate]);
 
-  if (isLoading) {
-    return <LoadingState message="Deriving Cahier Journal from pedagogical sessions..." />;
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-4">
       {/* Top Header & Meta */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <ClipboardList className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-              Cahier Journal (دفتر اليومية)
+          <div className="flex flex-wrap items-center gap-2">
+            <ClipboardList className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white break-words">
+              {language === 'ar' ? 'دفتر اليومية' : language === 'fr' ? 'Cahier Journal' : 'Cahier Journal (Daily Log)'}
             </h1>
-            <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              Derived View
+            <span className="px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {language === 'ar' ? 'عرض تلقائي مشتق' : 'Derived View'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Authoritative daily log of pedagogical activities, didactic plans, and attendance tallies.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'السجل اليومي الموثوق للنشاطات البيداغوجية، سير الحصص، ومتابعة حضور وغياب التلاميذ.'
+              : 'Authoritative daily log of pedagogical activities, didactic plans, and attendance tallies.'}
           </p>
         </div>
 
@@ -259,7 +259,7 @@ export const CahierJournalPage: React.FC = () => {
               className="flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              <span>Log Session</span>
+              <span>{language === 'ar' ? 'تسجيل حصة' : language === 'fr' ? 'Enregistrer séance' : 'Log Session'}</span>
             </Button>
           )}
         </div>
@@ -286,7 +286,7 @@ export const CahierJournalPage: React.FC = () => {
               className="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
             <Button variant="outline" size="sm" onClick={setToday}>
-              Today
+              {language === 'ar' ? 'اليوم' : language === 'fr' ? "Aujourd'hui" : 'Today'}
             </Button>
           </div>
 
@@ -303,13 +303,17 @@ export const CahierJournalPage: React.FC = () => {
         {/* Class Filter */}
         <div className="flex items-center gap-2">
           <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-xs text-slate-500 font-medium">Class:</span>
+          <span className="text-xs text-slate-500 font-medium">
+            {language === 'ar' ? 'الفوج:' : language === 'fr' ? 'Classe:' : 'Class:'}
+          </span>
           <select
             value={classFilter}
             onChange={(e) => updateFilters(selectedDate, e.target.value)}
-            className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium"
+            className="text-xs py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-medium w-full sm:w-auto min-w-[130px] max-w-[180px]"
           >
-            <option value="ALL">All Classes (جميع الأفواج)</option>
+            <option value="ALL">
+              {language === 'ar' ? 'جميع الأفواج' : language === 'fr' ? 'Toutes les classes' : 'All Classes'}
+            </option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} ({c.levelCode})
@@ -321,8 +325,8 @@ export const CahierJournalPage: React.FC = () => {
 
       {/* Daily Log Header */}
       <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-center space-y-1">
-        <h2 className="text-base font-bold text-slate-900 dark:text-white">
-          CAHIER JOURNAL — DAILY PEDAGOGICAL RECORD (دفتر اليومية)
+        <h2 className="text-base font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+          {language === 'ar' ? 'دفتر اليومية — السجل البيداغوجي اليومي' : language === 'fr' ? 'CAHIER JOURNAL — REGISTRE PÉDAGOGIQUE QUOTIDIEN' : 'CAHIER JOURNAL — DAILY PEDAGOGICAL RECORD'}
         </h2>
         <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
           {formattedDateTitle}
@@ -456,7 +460,7 @@ export const CahierJournalPage: React.FC = () => {
                     {lesson.specificObjectives && lesson.specificObjectives.length > 0 && (
                       <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-850 border border-slate-100 dark:border-slate-800 space-y-1">
                         <span className="font-semibold text-[11px] text-slate-700 dark:text-slate-300 block">
-                          Specific Learning Objectives (الأهداف التعلمية):
+                          {language === 'ar' ? 'الأهداف التعلمية الإجرائية:' : language === 'fr' ? 'Objectifs pédagogiques opérationnels:' : 'Specific Learning Objectives:'}
                         </span>
                         <ul className="list-disc list-inside space-y-0.5 text-slate-600 dark:text-slate-300">
                           {lesson.specificObjectives.map((obj, idx) => (
@@ -472,19 +476,19 @@ export const CahierJournalPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200 text-xs">
                         <Layers className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Didactic Activity Flow (سير الحصة التعلمية):</span>
+                        <span>{language === 'ar' ? 'سير الحصة التعلمية:' : language === 'fr' ? 'Déroulement didactique:' : 'Didactic Activity Flow:'}</span>
                       </div>
                       <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
-                        <table className="w-full text-left text-xs border-collapse">
+                        <table className="w-full text-left rtl:text-right text-xs border-collapse">
                           <thead className="bg-slate-50 dark:bg-slate-800/80 text-[11px] font-semibold text-slate-600 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
                             <tr>
                               <th className="p-2 w-10 text-center">#</th>
-                              <th className="p-2 w-36">Phase</th>
-                              <th className="p-2 w-16 text-center">Time</th>
-                              <th className="p-2 w-28">Interaction</th>
-                              <th className="p-2">Teacher's Role & Instructions</th>
-                              <th className="p-2">Pupil's Task & Activity</th>
-                              <th className="p-2 w-32">Aids / Media</th>
+                              <th className="p-2 w-36">{language === 'ar' ? 'المرحلة' : 'Phase'}</th>
+                              <th className="p-2 w-16 text-center">{language === 'ar' ? 'الزمن' : 'Time'}</th>
+                              <th className="p-2 w-28">{language === 'ar' ? 'نمط التفاعل' : 'Interaction'}</th>
+                              <th className="p-2">{language === 'ar' ? 'دور الأستاذ والتعليمات' : "Teacher's Role & Instructions"}</th>
+                              <th className="p-2">{language === 'ar' ? 'نشاط المتعلم ومهمته' : "Pupil's Task & Activity"}</th>
+                              <th className="p-2 w-32">{language === 'ar' ? 'الوسائل والسندات' : 'Aids / Media'}</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -524,7 +528,7 @@ export const CahierJournalPage: React.FC = () => {
                     {/* Materials */}
                     <div>
                       <span className="font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                        Materials & Aids (الوسائل):
+                        {language === 'ar' ? 'الوسائل التعليمية:' : language === 'fr' ? 'Matériel & Supports:' : 'Materials & Aids:'}
                       </span>
                       <div className="flex flex-wrap gap-1">
                         {lesson.materialsAndAids && lesson.materialsAndAids.length > 0 ? (
@@ -545,7 +549,7 @@ export const CahierJournalPage: React.FC = () => {
                     {/* Attendance Record */}
                     <div>
                       <span className="font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                        Attendance Status (الحضور والغياب):
+                        {language === 'ar' ? 'حالة الحضور والغياب:' : language === 'fr' ? 'État des présences:' : 'Attendance Status:'}
                       </span>
                       {records.length > 0 ? (
                         <div className="flex items-center gap-2 text-[11px]">
@@ -571,7 +575,7 @@ export const CahierJournalPage: React.FC = () => {
                     {/* Homework */}
                     <div>
                       <span className="font-semibold text-slate-600 dark:text-slate-400 block mb-1">
-                        Assigned Homework (الواجب المنزلي):
+                        {language === 'ar' ? 'الواجب المنزلي:' : language === 'fr' ? 'Devoirs assignés:' : 'Assigned Homework:'}
                       </span>
                       {lesson.assignedHomeworkTitle ? (
                         <div className="p-2 rounded bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] space-y-0.5">

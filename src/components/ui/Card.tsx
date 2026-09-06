@@ -8,6 +8,8 @@ import React from 'react';
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   header?: React.ReactNode;
   footer?: React.ReactNode;
+  bodyClassName?: string;
+  noPadding?: boolean;
 }
 
 export const Card: React.FC<CardProps> = ({
@@ -15,6 +17,8 @@ export const Card: React.FC<CardProps> = ({
   header,
   footer,
   className = '',
+  bodyClassName = '',
+  noPadding = false,
   ...props
 }) => {
   return (
@@ -23,13 +27,13 @@ export const Card: React.FC<CardProps> = ({
       {...props}
     >
       {header && (
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-white text-sm">
+        <div className="px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800 font-semibold text-slate-900 dark:text-white text-xs sm:text-sm break-words">
           {header}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className={noPadding ? bodyClassName : `p-3.5 sm:p-5 ${bodyClassName}`}>{children}</div>
       {footer && (
-        <div className="px-5 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-xs">
+        <div className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-[11px] sm:text-xs">
           {footer}
         </div>
       )}

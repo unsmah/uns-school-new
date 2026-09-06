@@ -25,6 +25,7 @@ import { StudentCsvImportModal } from '../../components/import/StudentCsvImportM
 import { EnrollStudentModal } from '../../components/students/EnrollStudentModal';
 import { StudentPersonModal } from '../../components/students/StudentPersonModal';
 import { ChangeEnrollmentStatusModal } from '../../components/students/ChangeEnrollmentStatusModal';
+import { useI18n } from '../../i18n/I18nContext';
 import type { SchoolClass, StudentEnrollment, StudentPerson, AcademicYear } from '../../types';
 
 interface ClassRosterViewProps {
@@ -44,12 +45,13 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
   onBack,
   onViewStudentProfile,
 }) => {
+  const { language } = useI18n();
   const [roster, setRoster] = useState<
     Array<{ enrollment: StudentEnrollment; person: StudentPerson }>
   >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modals
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
@@ -234,9 +236,7 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
         </div>
 
         {/* Roster Table */}
-        {isLoading ? (
-          <LoadingState message="Loading class roster..." />
-        ) : filteredRoster.length === 0 ? (
+        {filteredRoster.length === 0 ? (
           <EmptyState
             icon={<Users className="w-10 h-10" />}
             title="No Students in Roster"
@@ -263,17 +263,31 @@ export const ClassRosterView: React.FC<ClassRosterViewProps> = ({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-start text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3 w-16 text-center"># Reg</th>
-                  <th className="py-2.5 px-3">Student Name (Latin / French)</th>
-                  <th className="py-2.5 px-3">Student Name (العربية)</th>
-                  <th className="py-2.5 px-3">Gender</th>
-                  <th className="py-2.5 px-3">Date of Birth</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الاسم واللقب باللاتينية' : language === 'fr' ? 'Nom et prénom (latin)' : 'Student Name (Latin)'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الاسم واللقب بالعربية' : language === 'fr' ? 'Nom et prénom (arabe)' : 'Student Name (Arabic)'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الجنس' : language === 'fr' ? 'Genre' : 'Gender'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'تاريخ الميلاد' : language === 'fr' ? 'Date de naissance' : 'Date of Birth'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الصفة' : language === 'fr' ? 'Type' : 'Type'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الحالة' : language === 'fr' ? 'Statut' : 'Status'}
+                  </th>
+                  <th className="py-2.5 px-3 text-end">
+                    {language === 'ar' ? 'الإجراءات' : language === 'fr' ? 'Actions' : 'Actions'}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

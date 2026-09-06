@@ -19,9 +19,34 @@ export interface TeacherProfile {
   id: string;
   fullNameLatin: string;
   fullNameArabic?: string;
+  gender?: 'male' | 'female';
+  dateOfBirth?: string; // YYYY-MM-DD
+  placeOfBirth?: string;
+  nationalIdNumber?: string; // Numéro d'Identification Nationale (NIN)
+  nationalRegistrationNumber?: string; // Numéro de sécurité sociale / Matricule
+  financialRegistrationNumber?: string; // N° Matricule Financier / CCP
   email?: string;
   phone?: string;
-  nationalRegistrationNumber?: string; // Numéro de sécurité sociale / Matricule
+  address?: string;
+  wilaya?: string;
+  commune?: string;
+
+  // Professional & Administrative Details
+  subject?: string; // e.g. "English Language" / "اللغة الإنجليزية"
+  corpsRank?: string; // PEM, Professeur Principal, Professeur Formateur, Stagiaire, Contractuel
+  echelon?: number | string; // 1 to 12
+  echelonDate?: string; // Date de promotion à l'échelon actuel
+  firstAppointmentDate?: string; // Date de 1er recrutement
+  currentSchoolInstallationDate?: string; // Date d'installation dans l'établissement actuel
+  qualificationDegree?: string; // Licence d'Anglais, Master, Diplôme ENS, CAPEM
+  assignedLevels?: string[]; // e.g., ["1MS", "2MS", "3MS", "4MS"]
+  weeklyHoursQuota?: number; // e.g., 18
+  inspectorDistrict?: string; // Circonscription pédagogique
+  inspectorName?: string; // Nom de l'inspecteur
+  assignedSchoolName?: string; // Nom de l'établissement actuel
+  pedagogicalNotes?: string; // Bio / Teaching statement
+  avatarUrl?: string; // Base64 data URL or preset avatar
+
   createdAt: string;
   updatedAt: string;
 }

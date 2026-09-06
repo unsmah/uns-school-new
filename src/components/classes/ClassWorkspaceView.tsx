@@ -95,7 +95,7 @@ export const ClassWorkspaceView: React.FC<ClassWorkspaceViewProps> = ({
   const [isTimetableModalOpen, setIsTimetableModalOpen] = useState(false);
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loadClassData = useCallback(async () => {
     setIsLoading(true);
@@ -223,9 +223,7 @@ export const ClassWorkspaceView: React.FC<ClassWorkspaceViewProps> = ({
       </div>
 
       {/* Tab Contents */}
-      {isLoading ? (
-        <LoadingState message="Loading class workspace..." />
-      ) : activeTab === 'overview' ? (
+      {activeTab === 'overview' ? (
         <div className="space-y-6 text-xs">
           {/* Metrics Row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

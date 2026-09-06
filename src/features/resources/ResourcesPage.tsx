@@ -36,7 +36,7 @@ export const ResourcesPage: React.FC = () => {
   const [resources, setResources] = useState<LocalResource[]>([]);
   const [activeYear, setActiveYear] = useState<AcademicYear | null>(null);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState('');
@@ -257,24 +257,24 @@ export const ResourcesPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Banner & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 break-words">
               Teaching Resources & Lesson Plan Library
             </h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
               Offline Local Library
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
             Starter lesson plans, pair-work speaking cards, diagnostic rubrics, and printable worksheets for Algerian middle school teachers.
           </p>
         </div>
 
         <Button variant="primary" size="sm" onClick={() => setAddModalOpen(true)} className="shrink-0">
           <Plus className="w-4 h-4 mr-1.5" />
-          Add Resource / Template
+          <span>Add Resource / Template</span>
         </Button>
       </div>
 
@@ -371,9 +371,7 @@ export const ResourcesPage: React.FC = () => {
       </div>
 
       {/* Resource Cards Grid */}
-      {loading ? (
-        <div className="text-center py-12 text-slate-400 text-xs">Loading resource library...</div>
-      ) : filteredResources.length === 0 ? (
+      {filteredResources.length === 0 ? (
         <Card className="text-center py-12 text-slate-500 text-xs space-y-2">
           <FolderOpen className="w-8 h-8 text-slate-400 mx-auto" />
           <div className="font-semibold text-slate-700 dark:text-slate-300">No matching resources found</div>

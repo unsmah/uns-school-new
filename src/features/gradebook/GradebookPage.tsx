@@ -145,41 +145,41 @@ export const GradebookPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-            <FileSpreadsheet className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 flex flex-wrap items-center gap-2 sm:gap-2.5 break-words">
+            <FileSpreadsheet className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span>Teacher Gradebook</span>
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 break-words">
             Record continuous assessment scores, monitor completion, and compute weighted term averages.
           </p>
         </div>
 
         {/* View Toggle */}
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 self-start sm:self-auto">
+        <div className="flex items-center gap-1 sm:gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 w-full sm:w-auto">
           <button
             onClick={() => updateParam('view', 'roster')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               activeView === 'roster'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>Roster Grade Entry</span>
+            <CheckSquare className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Roster Entry</span>
           </button>
 
           <button
             onClick={() => updateParam('view', 'matrix')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               activeView === 'matrix'
                 ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xs'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
             }`}
           >
-            <Table className="w-3.5 h-3.5" />
-            <span>Term Deliberation Matrix</span>
+            <Table className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">Term Matrix</span>
           </button>
         </div>
       </div>

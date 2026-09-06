@@ -210,17 +210,17 @@ export const BackupPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200 pb-12">
       {/* Header */}
-      <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+      <div className="pb-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <HardDrive className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <HardDrive className="w-5 h-5 text-emerald-600 shrink-0" />
             <span>Backup & Data Recovery</span>
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 break-words">
             Local-only .unsschool package creation, archive validation, and atomic database restoration.
           </p>
         </div>
-        <div className="px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1.5">
+        <div className="self-start sm:self-auto px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 flex items-center gap-1.5 shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Local Device Sovereignty</span>
         </div>

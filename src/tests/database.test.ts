@@ -9,7 +9,7 @@ describe('Database Schema & Opening', () => {
 
   it('opens database with correct name and schema version', async () => {
     expect(db.name).toBe('uns_school_db');
-    expect(db.verno).toBe(1);
+    expect(db.verno).toBe(2);
     expect(db.isOpen()).toBe(true);
   });
 

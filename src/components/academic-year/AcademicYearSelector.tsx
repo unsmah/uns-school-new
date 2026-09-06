@@ -8,7 +8,11 @@ import { Calendar, AlertCircle, Archive, CheckCircle2 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
 import { Badge } from '../ui';
 
-export const AcademicYearSelector: React.FC<{ onManageClick?: () => void }> = ({ onManageClick }) => {
+export const AcademicYearSelector: React.FC<{
+  onManageClick?: () => void;
+  fullWidth?: boolean;
+  showBadgeOnMobile?: boolean;
+}> = ({ onManageClick, fullWidth = false, showBadgeOnMobile = false }) => {
   const { academicYears, selectedYearId, selectYearId, selectedAcademicYear, isArchived, isHistorical } =
     useAcademicYear();
 
@@ -30,19 +34,21 @@ export const AcademicYearSelector: React.FC<{ onManageClick?: () => void }> = ({
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="relative flex items-center">
+    <div className={`flex items-center gap-1.5 sm:gap-2 ${fullWidth ? 'w-full flex-wrap justify-between' : ''}`}>
+      <div className={`relative flex items-center ${fullWidth ? 'w-full' : ''}`}>
         <Calendar className="w-3.5 h-3.5 absolute start-2.5 text-slate-400 pointer-events-none" />
         <select
           id="academic-year-selector"
           value={selectedYearId}
           onChange={(e) => selectYearId(e.target.value)}
-          className="ps-8 pe-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+          className={`ps-8 pe-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors cursor-pointer truncate ${
+            fullWidth ? 'w-full' : 'max-w-[95px] xs:max-w-[130px] sm:max-w-none'
+          }`}
           aria-label="Select active viewing academic year"
         >
           {academicYears.map((year) => (
             <option key={year.id} value={year.id}>
-              {year.label} {year.isCurrent ? '(Current)' : year.isArchived ? '(Archived)' : '(Historical)'}
+              {year.label} {year.isCurrent ? '(Current)' : year.isArchived ? '(Archived)' : ''}
             </option>
           ))}
         </select>
@@ -50,21 +56,21 @@ export const AcademicYearSelector: React.FC<{ onManageClick?: () => void }> = ({
 
       {/* Year Status Badges */}
       {selectedAcademicYear && (
-        <div className="hidden sm:flex items-center gap-1.5">
+        <div className={`${showBadgeOnMobile ? 'flex mt-1.5' : 'hidden sm:flex'} items-center gap-1.5`}>
           {selectedAcademicYear.isCurrent && (
-            <Badge variant="success" className="flex items-center gap-1">
+            <Badge variant="success" className="flex items-center gap-1 text-[10px]">
               <CheckCircle2 className="w-3 h-3" />
               <span>Current</span>
             </Badge>
           )}
           {isArchived && (
-            <Badge variant="warning" className="flex items-center gap-1">
+            <Badge variant="warning" className="flex items-center gap-1 text-[10px]">
               <Archive className="w-3 h-3" />
               <span>Archived (Read-Only)</span>
             </Badge>
           )}
           {!selectedAcademicYear.isCurrent && !isArchived && (
-            <Badge variant="neutral" className="flex items-center gap-1">
+            <Badge variant="neutral" className="flex items-center gap-1 text-[10px]">
               <span>Historical</span>
             </Badge>
           )}

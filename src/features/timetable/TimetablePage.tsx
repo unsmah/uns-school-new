@@ -21,6 +21,7 @@ import { useAcademicYear } from '../../context/AcademicYearContext';
 import { timetableRepository, classRepository } from '../../db/repositories';
 import { Card, Button, Badge, Alert, LoadingState, EmptyState, Select, Modal } from '../../components/ui';
 import { TimetableSlotModal } from '../../components/timetable/TimetableSlotModal';
+import { useI18n } from '../../i18n/I18nContext';
 import type { TimetableSlot, SchoolClass } from '../../types';
 
 const DAYS_OF_WEEK: TimetableSlot['dayOfWeek'][] = [
@@ -52,8 +53,17 @@ const DAY_LABELS_AR: Record<string, string> = {
   Thursday: 'الخميس',
 };
 
+const DAY_LABELS_FR: Record<string, string> = {
+  Sunday: 'Dimanche',
+  Monday: 'Lundi',
+  Tuesday: 'Mardi',
+  Wednesday: 'Mercredi',
+  Thursday: 'Jeudi',
+};
+
 export const TimetablePage: React.FC = () => {
   const { school, selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   const [slots, setSlots] = useState<TimetableSlot[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -66,7 +76,7 @@ export const TimetablePage: React.FC = () => {
   const [targetDayForNewSlot, setTargetDayForNewSlot] = useState<TimetableSlot['dayOfWeek']>('Sunday');
   const [targetPeriodForNewSlot, setTargetPeriodForNewSlot] = useState<number>(1);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
@@ -148,18 +158,20 @@ export const TimetablePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <CalendarDays className="w-5 h-5 text-emerald-600" />
-            Weekly Timetable (جدول التوقيت الأسبوعي)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <CalendarDays className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>
+              {language === 'ar' ? 'جدول التوقيت الأسبوعي' : language === 'fr' ? 'Emploi du temps hebdomadaire' : 'Weekly Timetable'}
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Weekly English teaching schedule for academic year{' '}
-            <strong className="text-slate-800 dark:text-slate-200">
-              {selectedAcademicYear?.label || 'None'}
-            </strong>{' '}
-            (Sunday – Thursday).
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? `برنامج تدريس مادة اللغة الإنجليزية للموسم الدراسي ${selectedAcademicYear?.label || ''} (الأحد – الخميس).`
+              : language === 'fr'
+              ? `Planning hebdomadaire d'anglais pour l'année scolaire ${selectedAcademicYear?.label || ''} (Dimanche – Jeudi).`
+              : `Weekly English teaching schedule for academic year ${selectedAcademicYear?.label || 'None'} (Sunday – Thursday).`}
           </p>
         </div>
 
@@ -167,57 +179,61 @@ export const TimetablePage: React.FC = () => {
           {classes.length > 0 && !isArchived && (
             <Button variant="primary" size="sm" onClick={() => handleAddSlot('Sunday', 1)}>
               <Plus className="w-4 h-4" />
-              Add Teaching Slot
+              <span>{language === 'ar' ? 'إضافة حصة' : language === 'fr' ? 'Ajouter un créneau' : 'Add Teaching Slot'}</span>
             </Button>
           )}
         </div>
       </div>
 
       {isArchived && (
-        <Alert variant="warning" title="Archived Academic Year (Read-Only)">
-          You are viewing an archived academic year timetable. Modifying past timetable slots is restricted.
+        <Alert variant="warning" title={language === 'ar' ? 'موسم دراسي مؤرشف (للقراءة فقط)' : language === 'fr' ? 'Année scolaire archivée (Lecture seule)' : 'Archived Academic Year (Read-Only)'}>
+          {language === 'ar' ? 'أنت تتصفح جدول توقيت لموسم مؤرشف. تعديل الحصص محمي وغير مسموح به.' : 'You are viewing an archived academic year timetable. Modifying past timetable slots is restricted.'}
         </Alert>
       )}
 
       {feedbackSuccess && (
-        <Alert variant="success" title="Success">
+        <Alert variant="success" title={language === 'ar' ? 'تم بنجاح' : 'Success'}>
           {feedbackSuccess}
         </Alert>
       )}
       {feedbackError && (
-        <Alert variant="error" title="Error">
+        <Alert variant="error" title={language === 'ar' ? 'خطأ' : 'Error'}>
           {feedbackError}
         </Alert>
       )}
 
       {/* Metrics & Filter Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs">
-        <div className="flex items-center gap-4 text-slate-600 dark:text-slate-400">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-1.5">
-            <Clock className="w-4 h-4 text-emerald-600" />
-            <span>Weekly Workload:</span>
-            <strong className="font-mono text-slate-900 dark:text-white text-sm">
-              {totalWeeklyHours} hrs
+            <Clock className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{language === 'ar' ? 'الحجم الساعي الأسبوعي:' : language === 'fr' ? 'Charge hebdomadaire:' : 'Weekly Workload:'}</span>
+            <strong className="font-mono text-slate-900 dark:text-white text-xs sm:text-sm">
+              {totalWeeklyHours} {language === 'ar' ? 'سا' : 'hrs'}
             </strong>
           </div>
           <div className="flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-emerald-600" />
-            <span>Active Classes:</span>
-            <strong className="font-mono text-slate-900 dark:text-white text-sm">
+            <Layers className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{language === 'ar' ? 'الأفواج المسندة:' : language === 'fr' ? 'Classes actives:' : 'Active Classes:'}</span>
+            <strong className="font-mono text-slate-900 dark:text-white text-xs sm:text-sm">
               {classesTaughtCount}
             </strong>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter className="w-3.5 h-3.5 text-slate-400" />
-          <span className="text-slate-500">Filter:</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-slate-500 font-medium">
+            {language === 'ar' ? 'تصفية الفوج:' : language === 'fr' ? 'Classe:' : 'Filter:'}
+          </span>
           <select
             value={selectedClassFilter}
             onChange={(e) => setSelectedClassFilter(e.target.value)}
-            className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer"
+            className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer w-full sm:w-auto min-w-[130px] max-w-[180px]"
           >
-            <option value="ALL">All Classes (جميع الأفواج)</option>
+            <option value="ALL">
+              {language === 'ar' ? 'جميع الأفواج' : language === 'fr' ? 'Toutes les classes' : 'All Classes'}
+            </option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name} ({c.levelCode})
@@ -228,36 +244,33 @@ export const TimetablePage: React.FC = () => {
       </div>
 
       {/* Timetable Weekly Grid */}
-      {isLoading ? (
-        <LoadingState message="Loading weekly timetable..." />
-      ) : !selectedAcademicYear ? (
+      {!selectedAcademicYear ? (
         <EmptyState
           icon={<AlertCircle className="w-10 h-10" />}
-          title="No Academic Year Selected"
-          description="Please select an academic year to manage your timetable."
+          title={language === 'ar' ? 'لم يتم تحديد موسم دراسي' : 'No Academic Year Selected'}
+          description={language === 'ar' ? 'يرجى اختيار موسم دراسي لإدارة جدول التوقيت.' : 'Please select an academic year to manage your timetable.'}
         />
       ) : classes.length === 0 ? (
         <EmptyState
           icon={<CalendarDays className="w-10 h-10" />}
-          title="No Classes Available"
-          description="Create your classes first in the Classes workspace before adding timetable slots."
+          title={language === 'ar' ? 'لا توجد أفواج مسجلة' : 'No Classes Available'}
+          description={language === 'ar' ? 'قم بإنشاء الأفواج التربوية أولاً قبل تعيين حصص جدول التوقيت.' : 'Create your classes first in the Classes workspace before adding timetable slots.'}
         />
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-          <table className="w-full border-collapse text-left min-w-[760px]">
+          <table className="w-full border-collapse text-left rtl:text-right min-w-[760px]">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
                 <th className="py-3 px-3 w-28 text-center text-[11px] font-bold tracking-wider uppercase border-e border-slate-200 dark:border-slate-800">
-                  Period / Time
+                  {language === 'ar' ? 'الحصة / التوقيت' : language === 'fr' ? 'Séance / Horaire' : 'Period / Time'}
                 </th>
                 {DAYS_OF_WEEK.map((day) => (
                   <th
                     key={day}
                     className="py-3 px-3 text-center text-xs font-bold tracking-tight border-e last:border-e-0 border-slate-200 dark:border-slate-800"
                   >
-                    <div>{day}</div>
-                    <div className="text-[10px] text-slate-400 font-normal">
-                      {DAY_LABELS_AR[day]}
+                    <div>
+                      {language === 'ar' ? DAY_LABELS_AR[day] : language === 'fr' ? DAY_LABELS_FR[day] : day}
                     </div>
                   </th>
                 ))}
@@ -274,9 +287,13 @@ export const TimetablePage: React.FC = () => {
                       <tr className="bg-slate-100/70 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 font-medium text-[11px]">
                         <td
                           colSpan={6}
-                          className="py-1.5 px-4 text-center tracking-wide uppercase italic"
+                          className="py-1.5 px-4 text-center tracking-wide uppercase italic text-[11px]"
                         >
-                          Midday Pause / الاستراحة (12:00 – 13:00)
+                          {language === 'ar'
+                            ? 'فترة الظهيرة والراحة (12:00 – 13:00)'
+                            : language === 'fr'
+                            ? 'Pause de midi (12:00 – 13:00)'
+                            : 'Midday Pause (12:00 – 13:00)'}
                         </td>
                       </tr>
                     )}

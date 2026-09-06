@@ -20,6 +20,7 @@ import { useAcademicYear } from '../../context/AcademicYearContext';
 import { academicYearRepository, classRepository, studentEnrollmentRepository } from '../../db/repositories';
 import { Card, Button, Badge, Alert, LoadingState, EmptyState, Modal } from '../../components/ui';
 import { AcademicYearModal } from '../../components/academic-year/AcademicYearModal';
+import { AcademicYearSelector } from '../../components/academic-year/AcademicYearSelector';
 import { SchoolModal } from '../../components/school/SchoolModal';
 import type { AcademicYear } from '../../types';
 
@@ -139,25 +140,33 @@ export const AcademicYearsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-emerald-600" />
-            Academic Years & School Setup
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <Calendar className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>Academic Years & School Setup</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage your school profile, academic calendar periods, and historical year archives.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            Manage your school profile, active session context, academic calendar periods, and historical year archives.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Active Academic Year Viewing Context */}
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 whitespace-nowrap">
+              Active Context:
+            </span>
+            <AcademicYearSelector />
+          </div>
+
           <Button variant="outline" size="sm" onClick={() => setIsSchoolModalOpen(true)}>
             <Building2 className="w-4 h-4" />
-            School Profile
+            <span>School Profile</span>
           </Button>
           <Button variant="primary" size="sm" onClick={handleCreateNew}>
             <Plus className="w-4 h-4" />
-            New Academic Year
+            <span>New Academic Year</span>
           </Button>
         </div>
       </div>

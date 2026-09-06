@@ -118,8 +118,8 @@ export interface LocalResource {
   fileHashSHA256: string;
   fileBlob?: Blob; // Stored in IndexedDB
   tags: string[];
-  provenance?: ResourceProvenance;
-  isOfficial?: boolean;
+  provenance: ResourceProvenance;
+  isOfficial: boolean;
   sourceReference?: string;
   templatePayload?: LessonTemplatePayload;
   createdAt: string;

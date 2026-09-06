@@ -107,6 +107,8 @@ describe('Phase 9: Backup & Restore System', () => {
       fileHashSHA256: expectedSha256,
       fileBlob: blob,
       tags: ['grammar', '1AM'],
+      provenance: 'user_created',
+      isOfficial: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -428,6 +430,8 @@ describe('Phase 9: Backup & Restore System', () => {
       fileHashSHA256: await computeSHA256ForBuffer(binaryBuffer),
       fileBlob: blob,
       tags: ['syllabus'],
+      provenance: 'user_created',
+      isOfficial: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

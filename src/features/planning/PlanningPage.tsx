@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Card, Button, Badge, Alert } from '../../components/ui';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { classRepository } from '../../db/repositories/classRepository';
 import { lessonRepository } from '../../db/repositories/lessonRepository';
 import { curriculumRepository } from '../../db/repositories/curriculumRepository';
@@ -48,6 +49,7 @@ import type {
 
 export const PlanningPage: React.FC = () => {
   const { selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -214,14 +216,16 @@ export const PlanningPage: React.FC = () => {
       {/* Top Header & Navigation */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <Calendar className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              Planning & Pacing (التخطيط والتقدم البيداغوجي)
+          <div className="flex flex-wrap items-center gap-2">
+            <Calendar className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white break-words">
+              {language === 'ar' ? 'التخطيط والتقدم البيداغوجي' : language === 'fr' ? 'Planification & Progression' : 'Planning & Pacing'}
             </h1>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Authoritative progress tracking, sequence pacing, and competency coverage derived from recorded lessons.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'متابعة وتيرة تقدم المنهاج، إنجاز المقاطع والكفاءات انطلاقاً من حصص دفتر النصوص المسجلة.'
+              : 'Authoritative progress tracking, sequence pacing, and competency coverage derived from recorded lessons.'}
           </p>
         </div>
 
@@ -229,7 +233,7 @@ export const PlanningPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Class (القسم):
+              {language === 'ar' ? 'الفوج:' : language === 'fr' ? 'Classe:' : 'Class:'}
             </label>
             <select
               value={selectedClassId}
@@ -360,44 +364,71 @@ export const PlanningPage: React.FC = () => {
           )}
 
           {/* Sub-Tabs: Sequences, Competencies, Objectives */}
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab('sequences')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+              className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'sequences'
-                  ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/60 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
-              <Layers className="w-4 h-4" />
-              <span>Sequence Progress & Lessons ({sequences.length})</span>
+              <Layers className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{language === 'ar' ? 'المقاطع والوتيرة' : language === 'fr' ? 'Séquences & Progression' : 'Sequences & Pacing'}</span>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'sequences'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {sequences.length}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('competencies')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+              className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'competencies'
-                  ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/60 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
-              <Award className="w-4 h-4" />
-              <span>Competency Matrix ({competencies.length})</span>
+              <Award className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{language === 'ar' ? 'مصفوفة الكفاءات' : language === 'fr' ? 'Matrice des compétences' : 'Competency Matrix'}</span>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'competencies'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {competencies.length}
+              </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab('objectives')}
-              className={`px-4 py-2 text-xs font-semibold border-b-2 flex items-center gap-1.5 transition-colors ${
+              className={`px-3.5 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                 activeTab === 'objectives'
-                  ? 'border-emerald-600 text-emerald-600 dark:text-emerald-400'
-                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/60 dark:border-slate-800'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Learning Objectives Alignment ({objectives.length})</span>
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+              <span>{language === 'ar' ? 'الأهداف التعلمية' : language === 'fr' ? 'Objectifs d’apprentissage' : 'Learning Objectives'}</span>
+              <span
+                className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                  activeTab === 'objectives'
+                    ? 'bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+                }`}
+              >
+                {objectives.length}
+              </span>
             </button>
           </div>
 

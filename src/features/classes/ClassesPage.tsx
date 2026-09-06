@@ -21,6 +21,7 @@ import {
   CalendarDays,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import { classRepository, studentEnrollmentRepository } from '../../db/repositories';
 import { Card, Button, Badge, Alert, LoadingState, EmptyState, Modal } from '../../components/ui';
 import { ClassModal } from '../../components/classes/ClassModal';
@@ -33,19 +34,20 @@ interface ClassesPageProps {
   onNavigateToStudentProfile?: (studentId: string) => void;
 }
 
-const LEVEL_TABS = [
-  { key: 'ALL', label: 'All Levels (جميع المستويات)' },
-  { key: '1MS', label: '1MS (1AM)' },
-  { key: '2MS', label: '2MS (2AM)' },
-  { key: '3MS', label: '3MS (3AM)' },
-  { key: '4MS', label: '4MS (4AM - BEM)' },
-];
-
 export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentProfile }) => {
   const { classId: routeClassId } = useParams<{ classId?: string }>();
   const navigate = useNavigate();
 
   const { school, selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
+
+  const levelTabs = [
+    { key: 'ALL', label: language === 'ar' ? 'جميع المستويات' : language === 'fr' ? 'Tous les niveaux' : 'All Levels' },
+    { key: '1MS', label: '1MS' },
+    { key: '2MS', label: '2MS' },
+    { key: '3MS', label: '3MS' },
+    { key: '4MS', label: '4MS (BEM)' },
+  ];
 
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [classStudentCounts, setClassStudentCounts] = useState<Record<string, number>>({});
@@ -58,7 +60,7 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
   const [classToDelete, setClassToDelete] = useState<SchoolClass | null>(null);
   const [importTargetClass, setImportTargetClass] = useState<SchoolClass | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
@@ -163,14 +165,16 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <GraduationCap className="w-5 h-5 text-emerald-600" />
-            Classes & Divisions (الأفواج التربوية)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <GraduationCap className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{language === 'ar' ? 'الأفواج التربوية' : language === 'fr' ? 'Classes & Divisions' : 'Classes & Divisions'}</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage your English teaching class divisions for academic year{' '}
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'إدارة الأفواج التربوية لمادة اللغة الإنجليزية للموسم الدراسي '
+              : 'Manage your English teaching class divisions for academic year '}
             <strong className="text-slate-800 dark:text-slate-200">
               {selectedAcademicYear ? selectedAcademicYear.label : 'None'}
             </strong>
@@ -181,32 +185,34 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
         {selectedAcademicYear && !isArchived && (
           <Button variant="primary" size="sm" onClick={handleCreateClass}>
             <Plus className="w-4 h-4" />
-            New Class
+            {language === 'ar' ? 'إضافة فوج جديد' : language === 'fr' ? 'Nouvelle classe' : 'New Class'}
           </Button>
         )}
       </div>
 
       {/* Historical / Archived warning banner */}
       {isArchived && (
-        <Alert variant="warning" title="Archived Academic Year (Read-Only)">
-          You are viewing an archived academic year. Historical records and class rosters are protected against administrative modifications.
+        <Alert variant="warning" title={language === 'ar' ? 'سنة دراسية مؤرشفة (للقراءة فقط)' : 'Archived Academic Year (Read-Only)'}>
+          {language === 'ar'
+            ? 'أنت تتصفح سنة دراسية مؤرشفة. السجلات التاريخية وقوائم التلاميذ محمية ضد التعديل.'
+            : 'You are viewing an archived academic year. Historical records and class rosters are protected against administrative modifications.'}
         </Alert>
       )}
 
       {feedbackError && (
-        <Alert variant="error" title="Error">
+        <Alert variant="error" title={language === 'ar' ? 'خطأ' : 'Error'}>
           {feedbackError}
         </Alert>
       )}
       {feedbackSuccess && (
-        <Alert variant="success" title="Success">
+        <Alert variant="success" title={language === 'ar' ? 'نجاح' : 'Success'}>
           {feedbackSuccess}
         </Alert>
       )}
 
       {/* Middle School Level Filters */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800 text-xs">
-        {LEVEL_TABS.map((tab) => (
+        {levelTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveLevelTab(tab.key)}
@@ -222,9 +228,7 @@ export const ClassesPage: React.FC<ClassesPageProps> = ({ onNavigateToStudentPro
       </div>
 
       {/* Classes Grid */}
-      {isLoading ? (
-        <LoadingState message="Loading classes..." />
-      ) : !selectedAcademicYear ? (
+      {!selectedAcademicYear ? (
         <EmptyState
           icon={<AlertCircle className="w-10 h-10" />}
           title="No Academic Year Selected"

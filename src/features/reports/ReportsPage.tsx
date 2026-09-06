@@ -30,8 +30,8 @@ export const ReportsPage: React.FC = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-200 print:hidden">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Official Documents & Reports</h2>
-        <p className="text-sm text-slate-500">Generate, export, and print official administrative and pedagogical documents.</p>
+        <h2 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white break-words">Official Documents & Reports</h2>
+        <p className="text-xs sm:text-sm text-slate-500 break-words">Generate, export, and print official administrative and pedagogical documents.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

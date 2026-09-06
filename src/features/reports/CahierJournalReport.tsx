@@ -10,9 +10,11 @@ import type { SchoolClass, Lesson, School, TeacherProfile, SessionRubricDefiniti
 import { PrintableDocument } from '../../components/print/PrintableDocument';
 import { Button, Card, Badge } from '../../components/ui';
 import { ArrowLeft, Printer } from 'lucide-react';
+import { useI18n } from '../../i18n/I18nContext';
 
 export const CahierJournalReport: React.FC<{onBack: () => void}> = ({onBack}) => {
   const { selectedAcademicYear } = useAcademicYear();
+  const { language } = useI18n();
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -119,7 +121,7 @@ export const CahierJournalReport: React.FC<{onBack: () => void}> = ({onBack}) =>
 
       <Card className="print:border-none print:shadow-none overflow-hidden">
         <PrintableDocument
-          title="Cahier de Journal (دفتر اليومية)"
+          title={language === 'ar' ? 'دفتر اليومية' : 'Cahier de Journal'}
           subtitle={`Date: ${selectedDate}`}
           school={school}
           teacher={teacher}

@@ -12,9 +12,11 @@ import { PrintableDocument } from '../../components/print/PrintableDocument';
 import { Button, Card } from '../../components/ui';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
 import { exportToCsv } from '../../lib/export';
+import { useI18n } from '../../i18n/I18nContext';
 
 export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
   const { selectedAcademicYear } = useAcademicYear();
+  const { language } = useI18n();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   
@@ -136,7 +138,7 @@ export const AssessmentReport: React.FC<{onBack: () => void}> = ({onBack}) => {
       {selectedClass && assessment && (
         <Card className="print:border-none print:shadow-none overflow-hidden">
           <PrintableDocument
-            title={`Assessment Report (كشف النقاط)`}
+            title={language === 'ar' ? 'كشف النقاط' : language === 'fr' ? "Bulletin d'évaluation" : 'Assessment Report'}
             subtitle={`Class: ${selectedClass.name} | ${assessment.title} (${assessment.termNumber}) | Date: ${assessment.date}`}
             school={school}
             teacher={teacher}

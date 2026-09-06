@@ -87,8 +87,36 @@ export const academicYearRepository = {
         }
       }
 
+      let finalEvents = updates.calendarEvents;
+      if (Array.isArray(finalEvents)) {
+        const existingEventsMap = new Map((existing.calendarEvents || []).map((e) => [e.id, e]));
+        finalEvents = finalEvents.map((evt) => {
+          const prev = existingEventsMap.get(evt.id);
+          let status = evt.status || 'user_created';
+          let isOfficial = Boolean(evt.isOfficial);
+
+          if (status !== 'official_verified') {
+            isOfficial = false;
+          }
+
+          if (status === 'official_verified' || isOfficial) {
+            if (!prev || prev.status !== 'official_verified') {
+              status = 'user_created';
+              isOfficial = false;
+            }
+          }
+
+          return {
+            ...evt,
+            status,
+            isOfficial,
+          };
+        });
+      }
+
       await db.academicYears.update(id, {
         ...updates,
+        calendarEvents: finalEvents,
         updatedAt: now,
       });
     });

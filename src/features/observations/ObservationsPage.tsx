@@ -132,16 +132,16 @@ export const ObservationsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Observations</h2>
-          <p className="text-sm text-slate-500">Pedagogical notes & behaviour tracking</p>
+          <h2 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white break-words">Observations</h2>
+          <p className="text-xs sm:text-sm text-slate-500 break-words">Pedagogical notes & behaviour tracking</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <select
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
-            className="w-40 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+            className="w-full sm:w-40 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs sm:text-sm"
           >
             {classes.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>

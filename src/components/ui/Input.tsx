@@ -57,16 +57,28 @@ export const Input: React.FC<InputProps> = ({
   );
 };
 
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+export interface SelectOptGroup {
+  label: string;
+  options: SelectOption[];
+}
+
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
-  options: Array<{ value: string; label: string }>;
+  options?: SelectOption[];
+  groups?: SelectOptGroup[];
 }
 
 export const Select: React.FC<SelectProps> = ({
   label,
   error,
-  options,
+  options = [],
+  groups,
   id,
   className = '',
   ...props
@@ -94,11 +106,21 @@ export const Select: React.FC<SelectProps> = ({
         } ${className}`}
         {...props}
       >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
+        {groups && groups.length > 0
+          ? groups.map((grp, idx) => (
+              <optgroup key={idx} label={grp.label} className="font-semibold text-slate-700 dark:text-slate-200">
+                {grp.options.map((opt) => (
+                  <option key={opt.value} value={opt.value} className="font-normal text-slate-800 dark:text-slate-100">
+                    {opt.label}
+                  </option>
+                ))}
+              </optgroup>
+            ))
+          : options.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
       </select>
       {error && (
         <p id={`${selectId}-error`} className="text-xs text-rose-600 dark:text-rose-400">

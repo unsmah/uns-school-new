@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, DoorOpen, BookOpen, AlertCircle } from 'lucide-react';
 import { Modal, Button, Input, Select, Alert } from '../ui';
 import { timetableRepository } from '../../db/repositories';
+import { useI18n } from '../../i18n/I18nContext';
 import type { TimetableSlot, SchoolClass } from '../../types';
 
 interface TimetableSlotModalProps {
@@ -28,6 +29,30 @@ const DAYS_OF_WEEK: TimetableSlot['dayOfWeek'][] = [
   'Wednesday',
   'Thursday',
 ];
+
+const DAY_LABELS: Record<string, Record<string, string>> = {
+  ar: {
+    Sunday: 'الأحد',
+    Monday: 'الإثنين',
+    Tuesday: 'الثلاثاء',
+    Wednesday: 'الأربعاء',
+    Thursday: 'الخميس',
+  },
+  fr: {
+    Sunday: 'Dimanche',
+    Monday: 'Lundi',
+    Tuesday: 'Mardi',
+    Wednesday: 'Mercredi',
+    Thursday: 'Jeudi',
+  },
+  en: {
+    Sunday: 'Sunday',
+    Monday: 'Monday',
+    Tuesday: 'Tuesday',
+    Wednesday: 'Wednesday',
+    Thursday: 'Thursday',
+  },
+};
 
 const PERIOD_PRESETS: Record<number, { startTime: string; endTime: string; label: string }> = {
   1: { startTime: '08:00', endTime: '09:00', label: 'Period 1 (08:00 - 09:00)' },
@@ -51,6 +76,7 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
   defaultPeriod,
   onSaved,
 }) => {
+  const { language } = useI18n();
   const [dayOfWeek, setDayOfWeek] = useState<TimetableSlot['dayOfWeek']>('Sunday');
   const [periodNumber, setPeriodNumber] = useState<number>(1);
   const [startTime, setStartTime] = useState<string>('08:00');
@@ -197,27 +223,23 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Day of Week */}
           <Select
-            label="Day of Week (يوم التدريس)"
+            label={language === 'ar' ? 'يوم التدريس' : language === 'fr' ? 'Jour de la semaine' : 'Day of Week'}
             value={dayOfWeek}
             onChange={(e) => setDayOfWeek(e.target.value as TimetableSlot['dayOfWeek'])}
             options={DAYS_OF_WEEK.map((day) => ({
               value: day,
-              label: day === 'Sunday' ? 'Sunday (الأحد)'
-                : day === 'Monday' ? 'Monday (الإثنين)'
-                : day === 'Tuesday' ? 'Tuesday (الثلاثاء)'
-                : day === 'Wednesday' ? 'Wednesday (الأربعاء)'
-                : 'Thursday (الخميس)',
+              label: DAY_LABELS[language]?.[day] || DAY_LABELS['en'][day],
             }))}
           />
 
           {/* Period Preset */}
           <Select
-            label="Teaching Period (الحصة)"
+            label={language === 'ar' ? 'الحصة التعليمية' : language === 'fr' ? 'Séance' : 'Teaching Period'}
             value={periodNumber.toString()}
             onChange={(e) => handlePeriodChange(parseInt(e.target.value, 10))}
             options={Object.entries(PERIOD_PRESETS).map(([pNum, p]) => ({
               value: pNum,
-              label: p.label,
+              label: `${language === 'ar' ? 'الحصة' : language === 'fr' ? 'Séance' : 'Period'} ${pNum} (${p.startTime} - ${p.endTime})`,
             }))}
           />
         </div>
@@ -225,14 +247,14 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
         {/* Start & End Times */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Start Time"
+            label={language === 'ar' ? 'وقت البداية' : language === 'fr' ? 'Heure de début' : 'Start Time'}
             type="time"
             value={startTime}
             onChange={(e) => setStartTime(e.target.value)}
             required
           />
           <Input
-            label="End Time"
+            label={language === 'ar' ? 'وقت النهاية' : language === 'fr' ? 'Heure de fin' : 'End Time'}
             type="time"
             value={endTime}
             onChange={(e) => setEndTime(e.target.value)}
@@ -243,7 +265,7 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
         {/* Class Division */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select
-            label="Class Division (الفوج التربوي)"
+            label={language === 'ar' ? 'الفوج التربوي' : language === 'fr' ? 'Classe' : 'Class Division'}
             value={classId}
             onChange={(e) => handleClassChange(e.target.value)}
             options={classes.map((c) => ({
@@ -253,8 +275,8 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
           />
 
           <Input
-            label="Room / Salle (القاعة)"
-            placeholder="e.g. Salle 04, Lab"
+            label={language === 'ar' ? 'القاعة' : language === 'fr' ? 'Salle' : 'Room'}
+            placeholder={language === 'ar' ? 'مثال: قاعة 04' : 'e.g. Salle 04, Lab'}
             value={roomNumber}
             onChange={(e) => setRoomNumber(e.target.value)}
           />
@@ -263,17 +285,17 @@ export const TimetableSlotModal: React.FC<TimetableSlotModalProps> = ({
         {/* Subject / Notes */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input
-            label="Subject / Module"
+            label={language === 'ar' ? 'المادة التعليمية' : language === 'fr' ? 'Matière' : 'Subject'}
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
-            placeholder="e.g. English Language"
+            placeholder={language === 'ar' ? 'اللغة الإنجليزية' : 'e.g. English Language'}
           />
 
           <Input
-            label="Notes / Special Room (Optional)"
+            label={language === 'ar' ? 'ملاحظات إضافية' : language === 'fr' ? 'Remarques (optionnel)' : 'Notes (Optional)'}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="e.g. Fortnightly / Bi-weekly lab"
+            placeholder={language === 'ar' ? 'مثال: بالتناوب كل أسبوعين' : 'e.g. Fortnightly / Bi-weekly'}
           />
         </div>
       </form>

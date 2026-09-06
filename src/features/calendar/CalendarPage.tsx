@@ -151,17 +151,17 @@ export const CalendarPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 break-words">
               Academic Calendar & Weekly Timetable
             </h1>
-            <span className="text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            <span className="text-[10px] sm:text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
               Algerian Academic Year {activeYear?.label || '2026-2027'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
             Sunday to Thursday school week schedule, trimester date ranges, exam periods, and national holidays.
           </p>
         </div>
@@ -169,7 +169,7 @@ export const CalendarPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <Button variant="primary" size="sm" onClick={() => setAddEventModalOpen(true)}>
             <Plus className="w-4 h-4 mr-1.5" />
-            Add Calendar Event
+            <span>Add Calendar Event</span>
           </Button>
         </div>
       </div>
@@ -181,29 +181,29 @@ export const CalendarPage: React.FC = () => {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
           onClick={() => setActiveTab('calendar')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'calendar'
               ? 'bg-emerald-600 text-white shadow-sm'
               : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
           }`}
         >
-          <CalendarIcon className="w-4 h-4" />
-          <span>Academic Calendar & Terms</span>
+          <CalendarIcon className="w-4 h-4 shrink-0" />
+          <span className="truncate">Academic Calendar</span>
         </button>
 
         <button
           onClick={() => setActiveTab('timetable')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
             activeTab === 'timetable'
               ? 'bg-emerald-600 text-white shadow-sm'
               : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
           }`}
         >
-          <Clock className="w-4 h-4" />
-          <span>Weekly Timetable (الاستعمال الزمني)</span>
+          <Clock className="w-4 h-4 shrink-0" />
+          <span className="truncate">Weekly Timetable</span>
         </button>
       </div>
 

@@ -52,7 +52,7 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({
   const [person, setPerson] = useState<StudentPerson | null>(null);
   const [history, setHistory] = useState<HistoricalEnrollmentRecord[]>([]);
   const [activeEnrollment, setActiveEnrollment] = useState<HistoricalEnrollmentRecord | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Modals
   const [isEditIdentityModalOpen, setIsEditIdentityModalOpen] = useState(false);
@@ -131,10 +131,6 @@ export const StudentProfilePage: React.FC<StudentProfilePageProps> = ({
   useEffect(() => {
     loadStudentData();
   }, [loadStudentData]);
-
-  if (isLoading) {
-    return <LoadingState message="Loading student profile & historical record..." />;
-  }
 
   if (!person) {
     return (

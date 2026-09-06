@@ -23,6 +23,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   lessonRepository,
   classRepository,
@@ -53,6 +54,7 @@ export const LessonsPage: React.FC = () => {
   const initialClassFilter = searchParams.get('classId') || 'ALL';
 
   const { selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -69,7 +71,7 @@ export const LessonsPage: React.FC = () => {
   const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
   const [lessonToDelete, setLessonToDelete] = useState<Lesson | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
@@ -209,18 +211,18 @@ export const LessonsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-emerald-600" />
-            Classroom Sessions & Lessons (دفتر النصوص والحصص)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <BookOpen className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>
+              {language === 'ar' ? 'الدروس والحصص التعليمية' : language === 'fr' ? 'Séances & Leçons' : 'Classroom Sessions & Lessons'}
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Authoritative session shells, pedagogical rubrics, and attendance anchors for{' '}
-            <strong className="text-slate-800 dark:text-slate-200">
-              {selectedAcademicYear?.label || 'None'}
-            </strong>
-            .
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? `إدارة الحصص البيداغوجية، المذكرات، ومتابعة التقدم للموسم الدراسي ${selectedAcademicYear?.label || ''}.`
+              : `Authoritative session shells, pedagogical rubrics, and attendance anchors for ${selectedAcademicYear?.label || 'None'}.`}
           </p>
         </div>
 
@@ -228,7 +230,7 @@ export const LessonsPage: React.FC = () => {
           {classes.length > 0 && !isArchived && (
             <Button variant="primary" size="sm" onClick={handleCreateLesson}>
               <Plus className="w-4 h-4" />
-              Plan / Log Session
+              <span>{language === 'ar' ? 'تخطيط / تسجيل حصة' : language === 'fr' ? 'Planifier une séance' : 'Plan / Log Session'}</span>
             </Button>
           )}
         </div>
@@ -299,13 +301,17 @@ export const LessonsPage: React.FC = () => {
           {/* Class Filter */}
           <div className="flex items-center gap-1.5">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-500">Class:</span>
+            <span className="text-slate-500 font-medium">
+              {language === 'ar' ? 'الفوج:' : language === 'fr' ? 'Classe:' : 'Class:'}
+            </span>
             <select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer w-full sm:w-auto min-w-[130px] max-w-[180px]"
             >
-              <option value="ALL">All Classes (جميع الأفواج)</option>
+              <option value="ALL">
+                {language === 'ar' ? 'جميع الأفواج' : language === 'fr' ? 'Toutes les classes' : 'All Classes'}
+              </option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name} ({c.levelCode})
@@ -316,15 +322,23 @@ export const LessonsPage: React.FC = () => {
 
           {/* Status Filter */}
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-500">Status:</span>
+            <span className="text-slate-500 font-medium">
+              {language === 'ar' ? 'الحالة:' : language === 'fr' ? 'Statut:' : 'Status:'}
+            </span>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-medium cursor-pointer w-full sm:w-auto min-w-[120px]"
             >
-              <option value="ALL">All Sessions</option>
-              <option value="COMPLETED">Completed Only (تمت)</option>
-              <option value="PENDING">Pending / Upcoming (مقررة)</option>
+              <option value="ALL">
+                {language === 'ar' ? 'جميع الحصص' : language === 'fr' ? 'Toutes les séances' : 'All Sessions'}
+              </option>
+              <option value="COMPLETED">
+                {language === 'ar' ? 'الحصص المنجزة فقط' : language === 'fr' ? 'Séances terminées' : 'Completed Only'}
+              </option>
+              <option value="PENDING">
+                {language === 'ar' ? 'الحصص المقررة / المتبقية' : language === 'fr' ? 'Séances en attente' : 'Pending / Upcoming'}
+              </option>
             </select>
           </div>
         </div>
@@ -340,9 +354,7 @@ export const LessonsPage: React.FC = () => {
       </div>
 
       {/* Lessons List */}
-      {isLoading ? (
-        <LoadingState message="Loading classroom sessions..." />
-      ) : sortedLessons.length === 0 ? (
+      {sortedLessons.length === 0 ? (
         <EmptyState
           icon={<BookOpen className="w-10 h-10" />}
           title={

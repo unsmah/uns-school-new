@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   studentPersonRepository,
   studentEnrollmentRepository,
@@ -37,6 +38,7 @@ interface EnrichedStudentRow {
 
 export const StudentsPage: React.FC = () => {
   const { selectedAcademicYear, isArchived } = useAcademicYear();
+  const { language } = useI18n();
 
   const [students, setStudents] = useState<EnrichedStudentRow[]>([]);
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -49,7 +51,7 @@ export const StudentsPage: React.FC = () => {
   const [isNewPersonModalOpen, setIsNewPersonModalOpen] = useState(false);
   const [enrollingPerson, setEnrollingPerson] = useState<StudentPerson | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
@@ -144,14 +146,18 @@ export const StudentsPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-emerald-600" />
-            Students Directory & Registry (سجل التلاميذ)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <Users className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>
+              {language === 'ar' ? 'سجل التلاميذ والمسار الدراسي' : language === 'fr' ? 'Registre des élèves' : 'Students Directory & Registry'}
+            </span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Permanent civil identities and academic progression across middle school years.
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'إدارة الهويات المدنية الدائمة للتلاميذ ومتابعة تسجيلاتهم عبر السنوات الدراسية.'
+              : 'Permanent civil identities and academic progression across middle school years.'}
           </p>
         </div>
 
@@ -161,7 +167,7 @@ export const StudentsPage: React.FC = () => {
           onClick={() => setIsNewPersonModalOpen(true)}
         >
           <UserPlus className="w-4 h-4" />
-          Register New Student
+          <span>{language === 'ar' ? 'تسجيل تلميذ جديد' : language === 'fr' ? 'Inscrire nouvel élève' : 'Register New Student'}</span>
         </Button>
       </div>
 
@@ -178,15 +184,15 @@ export const StudentsPage: React.FC = () => {
 
       {/* Search & Filter Bar */}
       <Card>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs mb-4">
-          <div className="flex items-center gap-2 w-full md:w-auto flex-1">
-            <div className="relative flex-1 max-w-sm">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 text-xs mb-4">
+          <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full md:w-auto flex-1">
+            <div className="relative flex-1 min-w-[200px] max-w-full sm:max-w-sm">
               <Search className="w-3.5 h-3.5 absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by student name or # reg..."
+                placeholder={language === 'ar' ? 'بحث باسم التلميذ أو رقم التسجيل...' : language === 'fr' ? 'Rechercher par nom ou matricule...' : 'Search by student name or # reg...'}
                 className="w-full ps-8 pe-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               />
             </div>
@@ -196,9 +202,15 @@ export const StudentsPage: React.FC = () => {
               onChange={(e) => setViewFilter(e.target.value as any)}
               className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
             >
-              <option value="all">All Students ({students.length})</option>
-              <option value="enrolled_only">Enrolled in Active Year</option>
-              <option value="unenrolled_only">Not Enrolled</option>
+              <option value="all">
+                {language === 'ar' ? `جميع التلاميذ (${students.length})` : language === 'fr' ? `Tous les élèves (${students.length})` : `All Students (${students.length})`}
+              </option>
+              <option value="enrolled_only">
+                {language === 'ar' ? 'المسجلون في السنة الحالية' : language === 'fr' ? 'Inscrits cette année' : 'Enrolled in Active Year'}
+              </option>
+              <option value="unenrolled_only">
+                {language === 'ar' ? 'غير المسجلين' : language === 'fr' ? 'Non inscrits' : 'Not Enrolled'}
+              </option>
             </select>
 
             {classes.length > 0 && (
@@ -207,7 +219,9 @@ export const StudentsPage: React.FC = () => {
                 onChange={(e) => setClassFilter(e.target.value)}
                 className="px-2.5 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               >
-                <option value="all">All Classes</option>
+                <option value="all">
+                  {language === 'ar' ? 'جميع الأفواج' : language === 'fr' ? 'Toutes les classes' : 'All Classes'}
+                </option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} ({c.levelCode})
@@ -217,14 +231,14 @@ export const StudentsPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-slate-500 font-medium">
+          <div className="flex items-center gap-2 text-slate-500 font-medium text-[11px] sm:text-xs">
             <span>
               Total Registered:{' '}
               <strong className="text-slate-900 dark:text-white">{students.length}</strong>
             </span>
             <span>•</span>
             <span>
-              Enrolled in {selectedAcademicYear?.label || 'Active Year'}:{' '}
+              Enrolled:{' '}
               <strong className="text-emerald-600 dark:text-emerald-400">
                 {students.filter((s) => s.activeEnrollment).length}
               </strong>
@@ -233,9 +247,7 @@ export const StudentsPage: React.FC = () => {
         </div>
 
         {/* Directory Table */}
-        {isLoading ? (
-          <LoadingState message="Loading student records..." />
-        ) : filteredStudents.length === 0 ? (
+        {filteredStudents.length === 0 ? (
           <EmptyState
             icon={<Users className="w-10 h-10" />}
             title="No Students Found"
@@ -257,21 +269,35 @@ export const StudentsPage: React.FC = () => {
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+            <table className="w-full text-start text-xs">
+              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs">
                 <tr>
-                  <th className="py-2.5 px-3">Student Name (Latin)</th>
-                  <th className="py-2.5 px-3">Student Name (العربية)</th>
-                  <th className="py-2.5 px-3">Gender</th>
-                  <th className="py-2.5 px-3">DOB</th>
                   <th className="py-2.5 px-3">
-                    Active Enrollment ({selectedAcademicYear?.label || 'Year'})
+                    {language === 'ar' ? 'الاسم باللاتينية' : language === 'fr' ? 'Nom en latin' : 'Student Name'}
                   </th>
-                  <th className="py-2.5 px-3">Total Years</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar' ? 'الاسم بالعربية' : language === 'fr' ? 'Nom en arabe' : 'Arabic Name'}
+                  </th>
+                  <th className="py-2.5 px-3 hidden sm:table-cell">
+                    {language === 'ar' ? 'الجنس' : language === 'fr' ? 'Genre' : 'Gender'}
+                  </th>
+                  <th className="py-2.5 px-3 hidden md:table-cell">
+                    {language === 'ar' ? 'تاريخ الميلاد' : language === 'fr' ? 'Date de naissance' : 'DOB'}
+                  </th>
+                  <th className="py-2.5 px-3">
+                    {language === 'ar'
+                      ? `التسجيل (${selectedAcademicYear?.label || 'السنة'})`
+                      : `Enrollment (${selectedAcademicYear?.label || 'Year'})`}
+                  </th>
+                  <th className="py-2.5 px-3 hidden lg:table-cell">
+                    {language === 'ar' ? 'مجموع السنوات' : language === 'fr' ? 'Années inscrites' : 'Total Years'}
+                  </th>
+                  <th className="py-2.5 px-3 text-end">
+                    {language === 'ar' ? 'الإجراءات' : language === 'fr' ? 'Actions' : 'Actions'}
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs">
                 {filteredStudents.map(
                   ({ person, activeEnrollment, schoolClass, totalEnrollmentsCount }) => (
                     <tr
@@ -281,41 +307,41 @@ export const StudentsPage: React.FC = () => {
                       <td className="py-2.5 px-3">
                         <button
                           onClick={() => setSelectedStudentId(person.id)}
-                          className="font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 text-left cursor-pointer"
+                          className="font-bold text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 text-left cursor-pointer break-words max-w-[150px] sm:max-w-none inline-block"
                         >
                           {person.lastNameLatin.toUpperCase()} {person.firstNameLatin}
                         </button>
                       </td>
                       <td
-                        className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-300"
+                        className="py-2.5 px-3 font-semibold text-slate-700 dark:text-slate-300 break-words"
                         dir="rtl"
                       >
                         {person.lastNameArabic || '—'} {person.firstNameArabic || ''}
                       </td>
-                      <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400">
+                      <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 hidden sm:table-cell">
                         {person.gender === 'M' ? 'M' : 'F'}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400">
+                      <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-400 hidden md:table-cell">
                         {person.dateOfBirth || '—'}
                       </td>
                       <td className="py-2.5 px-3">
                         {activeEnrollment && schoolClass ? (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
                             <span className="font-bold text-slate-900 dark:text-white">
                               {schoolClass.name}
                             </span>
-                            <span className="font-mono text-emerald-600 font-semibold">
+                            <span className="font-mono text-emerald-600 font-semibold text-[11px]">
                               #{activeEnrollment.registerNumber}
                             </span>
                             {activeEnrollment.isRepeating && (
-                              <Badge variant="warning">Redoublant</Badge>
+                              <Badge variant="warning" className="text-[10px] px-1 py-0">R</Badge>
                             )}
                           </div>
                         ) : (
                           <span className="text-slate-400 text-[11px]">Not enrolled</span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-slate-500">
+                      <td className="py-2.5 px-3 font-mono text-slate-500 hidden lg:table-cell">
                         {totalEnrollmentsCount} yr(s)
                       </td>
                       <td className="py-2.5 px-3 text-right">
@@ -326,8 +352,8 @@ export const StudentsPage: React.FC = () => {
                             onClick={() => setSelectedStudentId(person.id)}
                             title="View student profile & history"
                           >
-                            <Eye className="w-3.5 h-3.5 me-1" />
-                            Profile
+                            <Eye className="w-3.5 h-3.5 sm:me-1" />
+                            <span className="hidden sm:inline">Profile</span>
                           </Button>
 
                           {!activeEnrollment && selectedAcademicYear && !isArchived && (

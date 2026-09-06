@@ -73,15 +73,15 @@ export const Modal: React.FC<ModalProps> = ({
       />
 
       {/* Modal Dialog Box */}
-      <div className="relative z-10 min-h-full flex items-center justify-center p-4 sm:p-6 text-center">
+      <div className="relative z-10 min-h-full flex items-center justify-center p-2 sm:p-6 text-center">
         <div
-          className={`w-full ${maxWidthClasses[maxWidth]} transform rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left align-middle shadow-2xl transition-all overflow-hidden flex flex-col max-h-[90vh]`}
+          className={`w-full ${maxWidthClasses[maxWidth]} transform rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-left align-middle shadow-2xl transition-all overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/50">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0 bg-slate-50/70 dark:bg-slate-800/50">
             <div>
-              <h3 id="modal-title" className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+              <h3 id="modal-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white leading-tight">
                 {title}
               </h3>
               {description && (
@@ -100,11 +100,11 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
 
           {/* Body */}
-          <div className="px-6 py-5 overflow-y-auto flex-1">{children}</div>
+          <div className="px-4 sm:px-6 py-4 sm:py-5 overflow-y-auto flex-1">{children}</div>
 
           {/* Footer */}
           {footer && (
-            <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2 shrink-0">
+            <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex items-center justify-end gap-2 shrink-0 flex-wrap">
               {footer}
             </div>
           )}

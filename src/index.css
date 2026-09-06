@@ -2,6 +2,41 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: hidden;
+  }
+
+  body {
+    overflow-x: hidden;
+    min-width: 320px;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  /* Responsive typography safeguards */
+  h1, h2, h3, h4, h5, h6 {
+    overflow-wrap: break-word;
+  }
+
+  /* RTL Arabic Typography Support */
+  html[dir="rtl"] {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Arabic', 'Cairo', Tahoma, sans-serif;
+  }
+
+  table {
+    word-break: normal;
+    overflow-wrap: normal;
+  }
+
+  /* Mobile safe area support */
+  .pb-safe {
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0.5rem));
+  }
+}
+
 @media print {
   body {
     -webkit-print-color-adjust: exact;
@@ -18,3 +53,4 @@
     display: none !important;
   }
 }
+

@@ -1,10 +1,10 @@
 /**
  * UNS SCHOOL — Database Schema Constants & Table Definitions
- * Schema Version: 1
+ * Schema Version: 2
  */
 
 export const DB_NAME = 'uns_school_db';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export const DB_TABLES = {
   // Administrative Core

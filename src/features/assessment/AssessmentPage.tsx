@@ -161,18 +161,18 @@ export const AssessmentPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Top Header & Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
-            <Award className="w-7 h-7 text-indigo-600 dark:text-indigo-400" />
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-slate-100 flex flex-wrap items-center gap-2 sm:gap-2.5 break-words">
+            <Award className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400 shrink-0" />
             <span>Continuous Assessments</span>
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 break-words">
             Create, manage, and monitor curriculum evaluations, tests, and official exams.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <Button
             variant="secondary"
             onClick={() => navigate('/gradebook')}

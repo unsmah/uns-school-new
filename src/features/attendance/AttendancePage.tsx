@@ -23,6 +23,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useAcademicYear } from '../../context/AcademicYearContext';
+import { useI18n } from '../../i18n/I18nContext';
 import {
   lessonRepository,
   attendanceRepository,
@@ -61,6 +62,7 @@ interface StudentRosterItem {
 export const AttendancePage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { language } = useI18n();
 
   const currentLessonIdParam = searchParams.get('lessonId') || '';
   const currentClassIdParam = searchParams.get('classId') || '';
@@ -89,7 +91,7 @@ export const AttendancePage: React.FC = () => {
   // Lesson modal state
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
@@ -383,14 +385,16 @@ export const AttendancePage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <UserCheck className="w-5 h-5 text-emerald-600" />
-            Classroom Attendance & Roll Call (سجل الحضور والغياب)
+          <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white flex flex-wrap items-center gap-2 break-words">
+            <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <span>{language === 'ar' ? 'سجل الحضور والغياب' : language === 'fr' ? 'Registre des présences' : 'Classroom Attendance & Roll Call'}</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Lesson-anchored roll call register for academic year{' '}
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
+            {language === 'ar'
+              ? 'سجل الحضور المرتبط بالحصة المعتمدة للموسم الدراسي '
+              : 'Lesson-anchored roll call register for academic year '}
             <strong className="text-slate-800 dark:text-slate-200">
               {selectedAcademicYear?.label || 'None'}
             </strong>
@@ -407,25 +411,27 @@ export const AttendancePage: React.FC = () => {
               className="gap-1.5"
             >
               <Plus className="w-4 h-4" />
-              Log New Session
+              <span>{language === 'ar' ? 'تسجيل حصة جديدة' : language === 'fr' ? 'Nouvelle séance' : 'Log New Session'}</span>
             </Button>
           )}
         </div>
       </div>
 
       {isArchived && (
-        <Alert variant="warning" title="Archived Academic Year (Read-Only)">
-          Attendance records for past academic years are preserved in read-only mode.
+        <Alert variant="warning" title={language === 'ar' ? 'سنة دراسية مؤرشفة (للقراءة فقط)' : 'Archived Academic Year (Read-Only)'}>
+          {language === 'ar'
+            ? 'سجلات الحضور للسنوات الدراسية السابقة محفوظة في وضع القراءة فقط.'
+            : 'Attendance records for past academic years are preserved in read-only mode.'}
         </Alert>
       )}
 
       {feedbackSuccess && (
-        <Alert variant="success" title="Success">
+        <Alert variant="success" title={language === 'ar' ? 'نجاح' : 'Success'}>
           {feedbackSuccess}
         </Alert>
       )}
       {feedbackError && (
-        <Alert variant="error" title="Error">
+        <Alert variant="error" title={language === 'ar' ? 'خطأ' : 'Error'}>
           {feedbackError}
         </Alert>
       )}
@@ -436,7 +442,7 @@ export const AttendancePage: React.FC = () => {
           {/* Class Selector */}
           <div>
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Select Class (الفوج التربوي):
+              {language === 'ar' ? 'الفوج التربوي:' : language === 'fr' ? 'Classe:' : 'Select Class:'}
             </label>
             <select
               value={selectedClassId}
@@ -457,7 +463,7 @@ export const AttendancePage: React.FC = () => {
           {/* Lesson Selector */}
           <div className="sm:col-span-2">
             <label className="font-semibold text-slate-700 dark:text-slate-300 block mb-1">
-              Select Lesson / Session Anchor (الحصة التربوية):
+              {language === 'ar' ? 'الحصة التربوية المعتمدة:' : language === 'fr' ? 'Séance pédagogique:' : 'Select Lesson / Session Anchor:'}
             </label>
             {lessonsForClass.length > 0 ? (
               <select
@@ -492,29 +498,31 @@ export const AttendancePage: React.FC = () => {
         </div>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl border border-slate-200/80 dark:border-slate-700/60 overflow-x-auto w-full sm:w-fit">
           <button
+            type="button"
             onClick={() => setViewMode('rollcall')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               viewMode === 'rollcall'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/60 dark:border-slate-800'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <UserCheck className="w-3.5 h-3.5" />
-            Active Roll Call Register
+            <UserCheck className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>{language === 'ar' ? 'سجل المناداة الفوري' : language === 'fr' ? 'Appel de la séance' : 'Active Roll Call Register'}</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setViewMode('history')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
               viewMode === 'history'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 hover:bg-slate-200'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-400 shadow-xs border border-slate-200/60 dark:border-slate-800'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
             }`}
           >
-            <History className="w-3.5 h-3.5" />
-            Class Attendance History
+            <History className="w-3.5 h-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            <span>{language === 'ar' ? 'سجل الغيابات التاريخي للفوج' : language === 'fr' ? 'Historique des présences' : 'Class Attendance History'}</span>
           </button>
         </div>
       </div>
@@ -574,7 +582,9 @@ export const AttendancePage: React.FC = () => {
               {/* Stat Counters Bar */}
               <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 border-t border-emerald-200/60 dark:border-emerald-900/50 text-center">
                 <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <div className="text-[10px] text-slate-500 uppercase font-bold">Total Roster</div>
+                  <div className="text-[10px] text-slate-500 uppercase font-bold">
+                    {language === 'ar' ? 'إجمالي الفوج' : 'Total Roster'}
+                  </div>
                   <div className="text-base font-bold font-mono text-slate-900 dark:text-white">
                     {currentStats.total}
                   </div>
@@ -582,7 +592,7 @@ export const AttendancePage: React.FC = () => {
 
                 <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800">
                   <div className="text-[10px] text-emerald-700 dark:text-emerald-400 uppercase font-bold">
-                    Present (حاضر)
+                    {language === 'ar' ? 'حاضر' : language === 'fr' ? 'Présent' : 'Present'}
                   </div>
                   <div className="text-base font-bold font-mono text-emerald-700 dark:text-emerald-300">
                     {currentStats.present}
@@ -591,7 +601,7 @@ export const AttendancePage: React.FC = () => {
 
                 <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800">
                   <div className="text-[10px] text-rose-700 dark:text-rose-400 uppercase font-bold">
-                    Absent (غائب)
+                    {language === 'ar' ? 'غائب' : language === 'fr' ? 'Absent' : 'Absent'}
                   </div>
                   <div className="text-base font-bold font-mono text-rose-700 dark:text-rose-300">
                     {currentStats.absent}
@@ -600,7 +610,7 @@ export const AttendancePage: React.FC = () => {
 
                 <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800">
                   <div className="text-[10px] text-amber-700 dark:text-amber-400 uppercase font-bold">
-                    Late (متأخر)
+                    {language === 'ar' ? 'متأخر' : language === 'fr' ? 'En retard' : 'Late'}
                   </div>
                   <div className="text-base font-bold font-mono text-amber-700 dark:text-amber-300">
                     {currentStats.late}
@@ -609,7 +619,7 @@ export const AttendancePage: React.FC = () => {
 
                 <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/60 border border-sky-200 dark:border-sky-800">
                   <div className="text-[10px] text-sky-700 dark:text-sky-400 uppercase font-bold">
-                    Excused (مبرر)
+                    {language === 'ar' ? 'مبرر' : language === 'fr' ? 'Excusé' : 'Excused'}
                   </div>
                   <div className="text-base font-bold font-mono text-sky-700 dark:text-sky-300">
                     {currentStats.excused}
@@ -618,7 +628,7 @@ export const AttendancePage: React.FC = () => {
 
                 <div className="p-2 rounded-lg bg-emerald-100/70 dark:bg-emerald-900/40 border border-emerald-300 dark:border-emerald-700">
                   <div className="text-[10px] text-emerald-900 dark:text-emerald-200 uppercase font-bold">
-                    Attendance Rate
+                    {language === 'ar' ? 'نسبة الحضور' : 'Attendance Rate'}
                   </div>
                   <div className="text-base font-bold font-mono text-emerald-950 dark:text-emerald-100">
                     {currentStats.rate}%
@@ -629,9 +639,7 @@ export const AttendancePage: React.FC = () => {
           )}
 
           {/* Roll Call Table */}
-          {isLoading ? (
-            <LoadingState message="Loading class roster for roll call..." />
-          ) : !activeLesson ? (
+          {!activeLesson ? (
             <EmptyState
               icon={<BookOpen className="w-10 h-10" />}
               title="No Lesson Selected"
@@ -653,14 +661,22 @@ export const AttendancePage: React.FC = () => {
             />
           ) : (
             <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs">
-              <table className="w-full border-collapse text-left text-xs min-w-[700px]">
+              <table className="w-full border-collapse text-start text-xs min-w-[700px]">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-800">
                     <th className="py-3 px-3 w-12 text-center font-mono font-bold">#</th>
-                    <th className="py-3 px-4 font-bold">Student Name (اللقب والاسم)</th>
-                    <th className="py-3 px-4 w-72 text-center font-bold">Status (الحالة)</th>
-                    <th className="py-3 px-3 w-28 text-center font-bold">Late (Mins)</th>
-                    <th className="py-3 px-4 font-bold">Remarks / Justification (ملاحظات)</th>
+                    <th className="py-3 px-4 font-bold">
+                      {language === 'ar' ? 'الاسم واللقب' : language === 'fr' ? 'Nom et Prénom' : 'Student Name'}
+                    </th>
+                    <th className="py-3 px-4 w-72 text-center font-bold">
+                      {language === 'ar' ? 'الحالة' : language === 'fr' ? 'Statut' : 'Status'}
+                    </th>
+                    <th className="py-3 px-3 w-28 text-center font-bold">
+                      {language === 'ar' ? 'التأخر (دقائق)' : language === 'fr' ? 'Retard (min)' : 'Late (Mins)'}
+                    </th>
+                    <th className="py-3 px-4 font-bold">
+                      {language === 'ar' ? 'الملاحظات والتبرير' : language === 'fr' ? 'Remarques / Justification' : 'Remarks / Justification'}
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -690,7 +706,7 @@ export const AttendancePage: React.FC = () => {
                           )}
                           {item.enrollment.isRepeating && (
                             <Badge variant="warning" className="text-[9px] px-1 py-0 mt-0.5">
-                              Repeating (معيد)
+                              {language === 'ar' ? 'معيد' : language === 'fr' ? 'Redoublant' : 'Repeating'}
                             </Badge>
                           )}
                         </td>

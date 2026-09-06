@@ -195,13 +195,13 @@ export const CurriculumPage: React.FC = () => {
       {/* Top Header & Context */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+          <div className="flex flex-wrap items-center gap-2">
+            <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white break-words">
               Curriculum Explorer (استكشاف المنهاج)
             </h1>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 break-words">
             Data-driven versioned Algerian middle school English curriculum (1AM–4AM)
           </p>
         </div>

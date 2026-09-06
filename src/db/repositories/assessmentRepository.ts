@@ -164,13 +164,26 @@ export const assessmentRepository = {
         const isChangingClass = updates.classId !== undefined && updates.classId !== existing.classId;
         const isChangingYear = updates.academicYearId !== undefined && updates.academicYearId !== existing.academicYearId;
         const isChangingScheme = updates.gradingSchemeId !== undefined && updates.gradingSchemeId !== existing.gradingSchemeId;
+        const isChangingComponent = updates.componentKey !== undefined && updates.componentKey !== existing.componentKey;
+        const isChangingMaxScore = updates.maxScore !== undefined && updates.maxScore !== existing.maxScore;
+        const isChangingCoeff = updates.coefficient !== undefined && updates.coefficient !== existing.coefficient;
+        const isChangingTerm = updates.termNumber !== undefined && updates.termNumber !== existing.termNumber;
 
         if (isChangingClass || isChangingYear || isChangingScheme) {
           const gradeCount = await db.grades.where('assessmentId').equals(id).count();
           if (gradeCount > 0) {
             throw new Error('Cannot change class, academic year, or grading scheme for an assessment with existing grades.');
           }
+        }
 
+        if (isChangingComponent || isChangingMaxScore || isChangingCoeff || isChangingTerm) {
+          const gradeCount = await db.grades.where('assessmentId').equals(id).count();
+          if (gradeCount > 0) {
+            throw new Error('Cannot change grading-defining fields for an assessment with existing grades.');
+          }
+        }
+
+        if (isChangingClass || isChangingYear || isChangingScheme) {
           const targetYearId = updates.academicYearId ?? existing.academicYearId;
           const targetClassId = updates.classId ?? existing.classId;
           const targetSchemeId = updates.gradingSchemeId ?? existing.gradingSchemeId;
@@ -202,18 +215,6 @@ export const assessmentRepository = {
             throw new Error(
               `Grading scheme ${targetSchemeId} belongs to academic year ${targetScheme.academicYearId}, not ${targetYearId}.`
             );
-          }
-        }
-
-        const isChangingMaxScore = updates.maxScore !== undefined && updates.maxScore !== existing.maxScore;
-        const isChangingCoefficient = updates.coefficient !== undefined && updates.coefficient !== existing.coefficient;
-        const isChangingComponentKey = updates.componentKey !== undefined && updates.componentKey !== existing.componentKey;
-        const isChangingTermNumber = updates.termNumber !== undefined && updates.termNumber !== existing.termNumber;
-
-        if (isChangingMaxScore || isChangingCoefficient || isChangingComponentKey || isChangingTermNumber) {
-          const gradeCount = await db.grades.where('assessmentId').equals(id).count();
-          if (gradeCount > 0) {
-            throw new Error('Cannot change grading-defining fields (maxScore, coefficient, componentKey, termNumber) for an assessment with existing grades.');
           }
         }
 

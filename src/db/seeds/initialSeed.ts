@@ -24,9 +24,9 @@ import { seedContentData } from './contentSeed';
 export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
   const now = new Date().toISOString();
 
-  // 1. Seed Curriculum Data if none exists
-  const existingVersionsCount = await db.curriculumVersions.count();
-  if (existingVersionsCount === 0) {
+  // 1. Seed Curriculum Data if missing
+  const existingVersion = await db.curriculumVersions.get('curr-dz-ms-en-gen2');
+  if (!existingVersion) {
     await db.transaction(
       'rw',
       [
@@ -38,7 +38,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
         db.learningObjectives,
       ],
       async () => {
-        const officialVersion: CurriculumVersion = {
+        const sampleCurriculumVersion: CurriculumVersion = {
           id: 'curr-dz-ms-en-gen2',
           code: 'SAMPLE-DZ-MS-EN',
           title: 'Middle School English Curriculum (Demonstration / Sample Data)',
@@ -49,13 +49,13 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           createdAt: now,
           updatedAt: now,
         };
-        await db.curriculumVersions.add(officialVersion);
+        await db.curriculumVersions.add(sampleCurriculumVersion);
 
         // Levels: 1AM, 2AM, 3AM, 4AM
         const levels: CurriculumLevelConfig[] = [
           {
             id: 'lvl-1am',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '1MS',
             levelTitle: '1st Year Middle School (1AM / 1MS)',
             weeklyHoursRecommended: 3,
@@ -64,7 +64,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'lvl-2am',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '2MS',
             levelTitle: '2nd Year Middle School (2AM / 2MS)',
             weeklyHoursRecommended: 3,
@@ -73,7 +73,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'lvl-3am',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '3MS',
             levelTitle: '3rd Year Middle School (3AM / 3MS)',
             weeklyHoursRecommended: 3,
@@ -82,7 +82,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'lvl-4am',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '4MS',
             levelTitle: '4th Year Middle School (4AM / 4MS)',
             weeklyHoursRecommended: 4,
@@ -98,7 +98,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
         const competencies: CompetencyDefinition[] = [
           {
             id: 'comp-dz-c1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: 'ALL',
             code: 'C1',
             name: 'Interact orally in English',
@@ -107,7 +107,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'comp-dz-c2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: 'ALL',
             code: 'C2',
             name: 'Interpret oral and written texts in English',
@@ -116,7 +116,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'comp-dz-c3',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: 'ALL',
             code: 'C3',
             name: 'Produce oral and written texts in English',
@@ -132,7 +132,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
         const rubrics: SessionRubricDefinition[] = [
           {
             id: 'rub-initial-situation',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'initial_situation',
             name: 'Initial Situation / Problem-solving Task',
             pedagogicalStage: 'Pre-requisite',
@@ -142,7 +142,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-listen-and-do',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'listen_and_do',
             name: 'I Listen and Do (Oral Interpretation)',
             pedagogicalStage: 'Presentation',
@@ -152,7 +152,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-pronounce',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'pronounce',
             name: 'I Pronounce (Phonology / Mechanics)',
             pedagogicalStage: 'Practice',
@@ -162,7 +162,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-practise',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'practise',
             name: 'I Practise (Grammar, Lexis & Functions)',
             pedagogicalStage: 'Practice',
@@ -172,7 +172,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-read-and-discover',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'read_and_discover',
             name: 'I Read and Discover (Reading Comprehension)',
             pedagogicalStage: 'Presentation',
@@ -182,7 +182,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-think-and-write',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'think_and_write',
             name: 'I Think and Write (Written Production)',
             pedagogicalStage: 'Production',
@@ -192,7 +192,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-now-i-can',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'now_i_can',
             name: 'Now I Can (Self-Assessment & Progress Check)',
             pedagogicalStage: 'Evaluation',
@@ -202,7 +202,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-integration',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'integration_situation',
             name: 'Integration Situation (Complex Task)',
             pedagogicalStage: 'Integration',
@@ -212,7 +212,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'rub-remediation',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             code: 'remediation',
             name: 'Remediation & Diagnostic Feedback',
             pedagogicalStage: 'Evaluation',
@@ -229,7 +229,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
         const sequences: CurriculumSequence[] = [
           {
             id: 'seq-1am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '1MS',
             sequenceNumber: 1,
             title: 'Sequence 1: Me and My Friends',
@@ -241,7 +241,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-1am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '1MS',
             sequenceNumber: 2,
             title: 'Sequence 2: Me and My Family',
@@ -253,7 +253,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-2am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '2MS',
             sequenceNumber: 1,
             title: 'Sequence 1: Me, My Friends and My Family',
@@ -265,7 +265,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-2am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '2MS',
             sequenceNumber: 2,
             title: 'Sequence 2: Me and My Shopping',
@@ -277,7 +277,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-3am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '3MS',
             sequenceNumber: 1,
             title: 'Sequence 1: Me, My Abilities and My Hobbies',
@@ -289,7 +289,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-3am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '3MS',
             sequenceNumber: 2,
             title: 'Sequence 2: Me and My Environment',
@@ -301,7 +301,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-4am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '4MS',
             sequenceNumber: 1,
             title: 'Sequence 1: Me, My Community and Universal Landmarks',
@@ -313,7 +313,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           },
           {
             id: 'seq-4am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             levelCode: '4MS',
             sequenceNumber: 2,
             title: 'Sequence 2: Me, My Personality and Life Experiences',
@@ -334,7 +334,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-1-1',
             sequenceId: 'seq-1am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Communicative',
             description: 'Greet formally and informally (Hello, Good morning, Hi).',
             order: 1,
@@ -342,7 +342,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-1-2',
             sequenceId: 'seq-1am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Linguistic',
             description: 'Use personal pronouns (I, you, he, she) and the auxiliary "to be" in simple present.',
             order: 2,
@@ -350,7 +350,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-1-3',
             sequenceId: 'seq-1am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Methodological',
             description: 'Fill in an individual ID card with name, age, city, and school.',
             order: 3,
@@ -358,7 +358,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-1-4',
             sequenceId: 'seq-1am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Cultural',
             description: 'Compare Algerian and English greeting conventions and politeness norms.',
             order: 4,
@@ -368,7 +368,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-2-1',
             sequenceId: 'seq-1am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Communicative',
             description: 'Introduce family members and describe their jobs/occupations.',
             order: 1,
@@ -376,7 +376,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-1am-2-2',
             sequenceId: 'seq-1am-2',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Linguistic',
             description: 'Apply possessive adjectives (my, your, his, her) and the verb "have got".',
             order: 2,
@@ -386,7 +386,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-2am-1-1',
             sequenceId: 'seq-2am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Communicative',
             description: 'Describe physical appearance (hair, eyes, height) and clothing items.',
             order: 1,
@@ -394,7 +394,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-2am-1-2',
             sequenceId: 'seq-2am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Linguistic',
             description: 'Use present simple with action verbs and adjectives in correct order.',
             order: 2,
@@ -404,7 +404,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-3am-1-1',
             sequenceId: 'seq-3am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Communicative',
             description: 'Express what one can or cannot do and express interests/likes.',
             order: 1,
@@ -412,7 +412,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-3am-1-2',
             sequenceId: 'seq-3am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Linguistic',
             description: 'Master modal auxiliary "can / can\'t" and verbs of liking followed by gerund (-ing).',
             order: 2,
@@ -422,7 +422,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-4am-1-1',
             sequenceId: 'seq-4am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Communicative',
             description: 'Describe famous Algerian and world historical monuments and universal heritage sites.',
             order: 1,
@@ -430,7 +430,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-4am-1-2',
             sequenceId: 'seq-4am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Linguistic',
             description: 'Use passive voice in the past simple (was/were + past participle) and comparative/superlative forms.',
             order: 2,
@@ -438,7 +438,7 @@ export async function seedInitialData(db: UnsSchoolDatabase): Promise<void> {
           {
             id: 'obj-4am-1-3',
             sequenceId: 'seq-4am-1',
-            curriculumVersionId: officialVersion.id,
+            curriculumVersionId: sampleCurriculumVersion.id,
             type: 'Cultural',
             description: 'Value and preserve Algerian cultural heritage (Tipaza, Casbah of Algiers, Tassili n\'Ajjer).',
             order: 3,

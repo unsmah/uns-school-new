@@ -29,6 +29,7 @@ export const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     nav_reports: 'Reports & Export',
     nav_calendar: 'Academic Calendar',
     nav_settings: 'Settings',
+    nav_teacher_profile: 'Teacher Profile',
     nav_backup: 'Backup & Restore',
     
     // Storage Telemetry
@@ -77,6 +78,7 @@ export const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     nav_reports: 'Rapports & Délibérations',
     nav_calendar: 'Calendrier Scolaire',
     nav_settings: 'Paramètres',
+    nav_teacher_profile: "Profil de l'enseignant",
     nav_backup: 'Sauvegarde & Restauration',
     
     // Storage Telemetry
@@ -115,8 +117,8 @@ export const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     nav_timetable: 'جدول التوقيت الأسبوعي',
     nav_planning: 'التوزيع السنوي والمخططات',
     nav_lessons: 'الدروس والحصص',
-    nav_cahier_journal: 'دفتر اليومية (Cahier Journal)',
-    nav_cahier_textes: 'دفتر النصوص (Cahier de Textes)',
+    nav_cahier_journal: 'دفتر اليومية',
+    nav_cahier_textes: 'دفتر النصوص',
     nav_attendance: 'سجل الحضور والغياب',
     nav_assessment: 'التقويمات والامتحانات',
     nav_gradebook: 'دفتر التنقيط ومداولات النقاط',
@@ -125,6 +127,7 @@ export const TRANSLATIONS: Record<AppLanguage, Record<string, string>> = {
     nav_reports: 'التقارير والكشوفات',
     nav_calendar: 'الرزنامة المدرسية',
     nav_settings: 'الإعدادات',
+    nav_teacher_profile: 'الملف المهني للأستاذ',
     nav_backup: 'النسخ الاحتياطي والاسترجاع',
     
     // Storage Telemetry

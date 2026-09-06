@@ -11,9 +11,11 @@ import { PrintableDocument } from '../../components/print/PrintableDocument';
 import { Button, Card } from '../../components/ui';
 import { ArrowLeft, Printer, Download } from 'lucide-react';
 import { exportToCsv } from '../../lib/export';
+import { useI18n } from '../../i18n/I18nContext';
 
 export const AttendanceReport: React.FC<{onBack: () => void}> = ({onBack}) => {
   const { selectedAcademicYear } = useAcademicYear();
+  const { language } = useI18n();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
   const [month, setMonth] = useState<string>(new Date().toISOString().substring(0, 7)); // YYYY-MM
@@ -124,7 +126,7 @@ export const AttendanceReport: React.FC<{onBack: () => void}> = ({onBack}) => {
       {selectedClass && (
         <Card className="print:border-none print:shadow-none overflow-x-auto">
           <PrintableDocument
-            title="Attendance Register (سجل الغيابات)"
+            title={language === 'ar' ? 'سجل الغيابات' : 'Attendance Register'}
             subtitle={`Class: ${selectedClass.name} | Month: ${month}`}
             school={school}
             teacher={teacher}
@@ -178,9 +180,9 @@ export const AttendanceReport: React.FC<{onBack: () => void}> = ({onBack}) => {
             </table>
             
             <div className="mt-4 flex gap-6 text-[10px] text-slate-600">
-              <div><strong className="text-black">A:</strong> Absent (غياب)</div>
-              <div><strong className="text-black">E:</strong> Excused (مستدعى)</div>
-              <div><strong className="text-black">L:</strong> Late (تأخر)</div>
+              <div><strong className="text-black">A:</strong> {language === 'ar' ? 'غياب' : 'Absent'}</div>
+              <div><strong className="text-black">E:</strong> {language === 'ar' ? 'مبرر' : 'Excused'}</div>
+              <div><strong className="text-black">L:</strong> {language === 'ar' ? 'تأخر' : 'Late'}</div>
             </div>
           </PrintableDocument>
         </Card>
